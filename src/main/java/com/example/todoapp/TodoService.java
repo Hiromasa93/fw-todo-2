@@ -2,9 +2,11 @@ package com.example.todoapp;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class TodoService {
 
     private final TodoMapper todoMapper;
@@ -22,14 +24,17 @@ public class TodoService {
     }
 
     public int create(Todo todo) {
+        log.info("Creating todo id={}", todo.getId());
         return todoMapper.insert(todo);
     }
 
     public int update(Todo todo) {
+        log.info("Updating todo id={}", todo.getId());
         return todoMapper.update(todo);
     }
 
     public int delete(Long id) {
+        log.info("Deleting todo id={}", id);
         return todoMapper.deleteById(id);
     }
 }
