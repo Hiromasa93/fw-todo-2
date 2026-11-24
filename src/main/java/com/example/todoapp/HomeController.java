@@ -36,7 +36,9 @@ public class HomeController {
         if (!"desc".equals(order)) {
             order = "asc";
         }
-        List<Todo> todos = todoService.search(keyword, category, order);
+        // The page does not expose date filters, so leave the API's optional
+        // date range unset for the HTML list.
+        List<Todo> todos = todoService.search(keyword, category, order, null, null);
         model.addAttribute("todos", todos);
         model.addAttribute("keyword", keyword);
         model.addAttribute("category", category);

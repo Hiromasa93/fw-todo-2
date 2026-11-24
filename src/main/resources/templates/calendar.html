@@ -11,8 +11,14 @@
     <h1 class="page-title" th:text="${year + '年' + month + '月'}">2026年4月</h1>
 
     <nav class="calendar-navigation" aria-label="月の移動">
-        <a class="link" th:href="@{/calendar(year=${previousYear}, month=${previousMonth})}">前の月</a>
-        <a class="link" th:href="@{/calendar(year=${nextYear}, month=${nextMonth})}">次の月</a>
+        <div class="calendar-navigation-months">
+            <a class="link" th:href="@{/calendar(year=${previousYear}, month=${previousMonth})}">前の月</a>
+            <a class="link" th:href="@{/calendar(year=${nextYear}, month=${nextMonth})}">次の月</a>
+        </div>
+        <div class="calendar-navigation-pages">
+            <a class="link" href="/todos">表で見る</a>
+            <a class="link" href="/todos/new">新規登録</a>
+        </div>
     </nav>
 
     <table class="calendar-table" th:attr="data-from=${from}, data-to=${to}">
@@ -45,14 +51,50 @@
         const res = await fetch(`/api/todos?${params}`);
         const todos = await res.json();
 
+        const today = new Date();
+        const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const todosByDate = new Map();
         todos.forEach(todo => {
-            document.querySelectorAll('.calendar-table td[data-date]').forEach(cell => {
-                if (cell.dataset.date === todo.dueDate) {
-                    const title = document.createElement('div');
-                    title.textContent = todo.title;
-                    cell.appendChild(title);
+            if (!todosByDate.has(todo.dueDate)) todosByDate.set(todo.dueDate, []);
+            todosByDate.get(todo.dueDate).push(todo);
+        });
+
+        document.querySelectorAll('.calendar-table td[data-date]').forEach(cell => {
+            const dayTodos = todosByDate.get(cell.dataset.date) || [];
+            dayTodos.slice(0, 3).forEach(todo => {
+                const title = document.createElement('a');
+                title.href = `/todos/${todo.id}/edit`;
+                title.classList.add('link');
+                title.textContent = todo.title;
+                if (todo.dueDate < todayDate && !todo.completed) {
+                    title.classList.add('overdue');
                 }
+                cell.appendChild(title);
             });
+            if (dayTodos.length > 3) {
+                const more = document.createElement('div');
+                more.textContent = `ほか ${dayTodos.length - 3}件`;
+                cell.appendChild(more);
+            }
+        });
+
+        const holidaysRes = await fetch(`/api/holidays?${params}`);
+        const holidays = await holidaysRes.json();
+        if (holidaysRes.headers.has('X-Holidays-Unavailable')) {
+            const message = document.createElement('p');
+            message.textContent = '祝日を取れませんでした';
+            document.querySelector('main').prepend(message);
+        }
+
+        document.querySelectorAll('.calendar-table td[data-date]').forEach(cell => {
+            const date = new Date(`${cell.dataset.date}T00:00:00`);
+            const day = date.getDay();
+            if (day === 6) cell.classList.add('saturday');
+            if (day === 0) cell.classList.add('sunday');
+            if (Object.hasOwn(holidays, cell.dataset.date)) {
+                cell.classList.add('holiday');
+                cell.title = holidays[cell.dataset.date];
+            }
         });
     }
 

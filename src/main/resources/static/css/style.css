@@ -125,6 +125,12 @@ body {
     margin-bottom: 12px;
 }
 
+.calendar-navigation-months,
+.calendar-navigation-pages {
+    display: flex;
+    gap: 12px;
+}
+
 .calendar-table {
     width: 100%;
     table-layout: fixed;
@@ -148,8 +154,24 @@ body {
     padding: 8px;
 }
 
+.calendar-table td.saturday {
+    background: #e0f2fe;
+}
+
+.calendar-table td.sunday {
+    background: #fee2e2;
+}
+
+.calendar-table td.holiday {
+    background: #fef3c7;
+}
+
 .calendar-table td span {
     font-weight: bold;
+}
+
+.calendar-table td .overdue {
+    color: #dc2626;
 }
 
 @media (max-width: 600px) {
