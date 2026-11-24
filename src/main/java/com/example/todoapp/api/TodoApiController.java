@@ -2,6 +2,7 @@ package com.example.todoapp.api;
 
 import java.util.List;
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -38,8 +40,10 @@ public class TodoApiController {
     public List<TodoDto> list(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "") String category,
-            @RequestParam(defaultValue = "asc") String order) {
-        return todoService.search(keyword, category, order).stream()
+            @RequestParam(defaultValue = "asc") String order,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return todoService.search(keyword, category, order, from, to).stream()
                 .map(TodoDto::from)
                 .toList();
     }

@@ -36,5 +36,27 @@
         </tbody>
     </table>
 </main>
+<script>
+    async function showTodosInCalendar() {
+        const calendar = document.querySelector('.calendar-table');
+        const from = calendar.dataset.from;
+        const to = calendar.dataset.to;
+        const params = new URLSearchParams({ from, to });
+        const res = await fetch(`/api/todos?${params}`);
+        const todos = await res.json();
+
+        todos.forEach(todo => {
+            document.querySelectorAll('.calendar-table td[data-date]').forEach(cell => {
+                if (cell.dataset.date === todo.dueDate) {
+                    const title = document.createElement('div');
+                    title.textContent = todo.title;
+                    cell.appendChild(title);
+                }
+            });
+        });
+    }
+
+    showTodosInCalendar();
+</script>
 </body>
 </html>
