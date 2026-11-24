@@ -2,6 +2,8 @@ package com.example.todoapp.api;
 
 import java.util.List;
 import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -15,6 +17,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+
+import jakarta.validation.Valid;
 
 import com.example.todoapp.Todo;
 import com.example.todoapp.TodoService;
@@ -48,7 +54,11 @@ public class TodoApiController {
     }
 
     @PostMapping("/api/todos")
-    public ResponseEntity<TodoDto> create(@RequestBody Todo todo) {
+    public ResponseEntity<?> create(@Valid @RequestBody TodoRequest request, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return badRequest(bindingResult);
+        }
+        Todo todo = toTodo(request);
         if (todo.getCompleted() == null) {
             todo.setCompleted(false);
         }
@@ -60,10 +70,15 @@ public class TodoApiController {
     }
 
     @PutMapping("/api/todos/{id}")
-    public ResponseEntity<?> replace(@PathVariable Long id, @RequestBody Todo todo) {
+    public ResponseEntity<?> replace(@PathVariable Long id, @Valid @RequestBody TodoRequest request,
+            BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return badRequest(bindingResult);
+        }
         if (todoService.findById(id) == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(notFound(id));
         }
+        Todo todo = toTodo(request);
         todo.setId(id);
         todoService.update(todo);
         return ResponseEntity.ok(TodoDto.from(todoService.findById(id)));
@@ -84,5 +99,35 @@ public class TodoApiController {
         problem.setTitle("Not Found");
         problem.setInstance(URI.create("/api/todos/" + id));
         return problem;
+    }
+
+    private Todo toTodo(TodoRequest request) {
+        Todo todo = new Todo();
+        todo.setTitle(request.getTitle());
+        todo.setDetail(request.getDetail());
+        todo.setCategory(request.getCategory());
+        todo.setPriority(request.getPriority());
+        todo.setDueDate(request.getDueDate());
+        todo.setCompleted(request.getCompleted());
+        return todo;
+    }
+
+    private ResponseEntity<ProblemDetail> badRequest(BindingResult bindingResult) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "入力に誤りがあります");
+        problem.setTitle("Bad Request");
+        problem.setInstance(ServletUriComponentsBuilder.fromCurrentRequest().build().toUri());
+        List<Map<String, String>> errors = bindingResult.getFieldErrors().stream()
+                .map(this::toError)
+                .toList();
+        problem.setProperty("errors", errors);
+        return ResponseEntity.badRequest().body(problem);
+    }
+
+    private Map<String, String> toError(FieldError error) {
+        Map<String, String> item = new LinkedHashMap<>();
+        item.put("field", error.getField());
+        item.put("message", error.getDefaultMessage());
+        return item;
     }
 }
