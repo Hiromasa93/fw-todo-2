@@ -95,7 +95,7 @@ Accept: application/json, text/event-stream
 POST http://localhost:8081/mcp
 Content-Type: application/json
 Accept: application/json, text/event-stream
-Mcp-Session-Id: bc57f224-aea1-4c9d-85e2-7ec9d10de181
+Mcp-Session-Id: b1c4e533-48f1-4e4a-b129-012834bdf7dd
 
 { "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {} }
 
@@ -103,7 +103,7 @@ Mcp-Session-Id: bc57f224-aea1-4c9d-85e2-7ec9d10de181
 POST http://localhost:8081/mcp
 Content-Type: application/json
 Accept: application/json, text/event-stream
-Mcp-Session-Id: bc57f224-aea1-4c9d-85e2-7ec9d10de181
+Mcp-Session-Id: b1c4e533-48f1-4e4a-b129-012834bdf7dd
 
 { "jsonrpc": "2.0", "id": 3, "method": "tools/call",
   "params": { "name": "list_todos", "arguments": {} } }
