@@ -37,7 +37,7 @@
             <a class="link" th:href="@{/todos(keyword=${keyword},category=${category},order='asc',includeCompleted=${includeCompleted},trash=${trash ? '1' : null})}">期限が近い順</a>
             <a class="link" th:href="@{/todos(keyword=${keyword},category=${category},order='desc',includeCompleted=${includeCompleted},trash=${trash ? '1' : null})}">期限が遠い順</a>
         </form>
-        <p><a class="btn" th:href="@{/api/todos.csv(keyword=${keyword},category=${category},order=${order},includeCompleted=${includeCompleted},trash=${trash ? '1' : null})}">CSVを書き出す</a></p>
+        <p><a class="btn" href="/profile">&#x30D7;&#x30ED;&#x30D5;&#x30A3;&#x30FC;&#x30EB;&#x30FB;&#x30DD;&#x30A4;&#x30F3;&#x30C8;</a> <a class="btn" th:href="@{/api/todos.csv(keyword=${keyword},category=${category},order=${order},includeCompleted=${includeCompleted},trash=${trash ? '1' : null})}">CSVを書き出す</a></p>
         <p><a class="btn" th:if="${!trash}" href="/todos/new">新規登録</a> <a class="link" th:if="${!trash}" href="/calendar">カレンダーで見る</a> <a class="link" th:if="${!trash}" href="/todos?trash=1">削除したものを見る</a> <a class="link" th:if="${trash}" href="/todos">一覧に戻る</a></p>
         <p data-empty-todos th:if="${#lists.isEmpty(todos)}" th:text="${trash} ? '削除したものはありません' : 'まだ1件も登録されていません'">まだ1件も登録されていません</p>
         <div class="view-switcher" role="group" aria-label="タスクの表示モード" data-view-switcher>

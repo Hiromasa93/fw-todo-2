@@ -19,16 +19,25 @@ public class HomeController {
 
     private final TodoService todoService;
     private final TagService tagService;
+    private final GamificationService gamificationService;
 
-    public HomeController(TodoService todoService, TagService tagService) {
+    public HomeController(TodoService todoService, TagService tagService, GamificationService gamificationService) {
         this.todoService = todoService;
         this.tagService = tagService;
+        this.gamificationService = gamificationService;
     }
 
     @GetMapping("/")
     public String home(Model model) {
         model.addAttribute("title", "ToDo");
         return "index";
+    }
+
+    @GetMapping("/profile")
+    public String profile(Model model) {
+        model.addAttribute("profile", gamificationService.profile());
+        model.addAttribute("history", gamificationService.history());
+        return "profile";
     }
 
     @GetMapping("/todos")

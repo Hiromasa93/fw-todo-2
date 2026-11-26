@@ -14,11 +14,14 @@ public class TodoService {
     private final TodoMapper todoMapper;
     private final TagMapper tagMapper;
     private final TagService tagService;
+    private final GamificationService gamificationService;
 
-    public TodoService(TodoMapper todoMapper, TagMapper tagMapper, TagService tagService) {
+    public TodoService(TodoMapper todoMapper, TagMapper tagMapper, TagService tagService,
+            GamificationService gamificationService) {
         this.todoMapper = todoMapper;
         this.tagMapper = tagMapper;
         this.tagService = tagService;
+        this.gamificationService = gamificationService;
     }
 
     public List<Todo> search(String keyword, String category, String order, LocalDate from, LocalDate to) {
@@ -70,9 +73,14 @@ public class TodoService {
     @Transactional
     public int update(Todo todo) {
         log.info("Updating todo id={}", todo.getId());
+        Todo before = todoMapper.findByIdForUpdate(todo.getId());
         List<Tag> tags = tagService.resolve(todo.getTagIds());
         int updated = todoMapper.update(todo);
         if (updated > 0) {
+            if (before != null && !Boolean.TRUE.equals(before.getCompleted()) && Boolean.TRUE.equals(todo.getCompleted())) {
+                todo.setCompletedAt(java.time.LocalDateTime.now());
+                gamificationService.awardCompletion(todo);
+            }
             if (todo.getTagIds() != null) {
                 saveTags(todo, tags);
             }
@@ -110,11 +118,18 @@ public class TodoService {
         return todoMapper.deleteByIds(ids);
     }
 
+    @Transactional
     public int updateStatusAll(List<Long> ids, boolean completed) {
         if (ids == null || ids.isEmpty()) {
             return 0;
         }
-        return todoMapper.updateStatusByIds(ids, completed);
+        List<Todo> newlyCompleted = completed ? todoMapper.findIncompleteByIds(ids) : List.of();
+        int updated = todoMapper.updateStatusByIds(ids, completed);
+        for (Todo todo : newlyCompleted) {
+            todo.setCompletedAt(java.time.LocalDateTime.now());
+            gamificationService.awardCompletion(todo);
+        }
+        return updated;
     }
 
     public int restore(Long id) {

@@ -55,6 +55,16 @@
         FROM todos
         WHERE id = #{id} AND deleted_at IS NULL
     </select>
+    <select id="findByIdForUpdate" resultType="com.example.todoapp.Todo">
+        SELECT id, title, detail, category, priority, due_date, completed, completed_at, pinned, created_at, updated_at, deleted_at
+        FROM todos WHERE id = #{id} AND deleted_at IS NULL FOR UPDATE
+    </select>
+    <select id="findIncompleteByIds" resultType="com.example.todoapp.Todo">
+        SELECT id, title, priority, due_date, completed, completed_at FROM todos
+        WHERE completed = false AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY id FOR UPDATE
+    </select>
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO todos (title, detail, category, priority, due_date, completed)
         VALUES (#{title}, #{detail}, #{category}, #{priority}, #{dueDate}, COALESCE(#{completed}, false))

@@ -24,6 +24,10 @@ public interface TodoMapper {
 
     Todo findById(Long id);
 
+    Todo findByIdForUpdate(Long id);
+
+    List<Todo> findIncompleteByIds(@Param("ids") List<Long> ids);
+
     int insert(Todo todo);
 
     int update(Todo todo);

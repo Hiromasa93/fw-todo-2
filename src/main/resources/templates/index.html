@@ -10,8 +10,8 @@
 <body>
     <div th:replace="~{fragments/theme :: controls}"></div>
     <main class="container">
-        <h1 class="page-title" th:text="${title}">見出し</h1>
-        <p>今日のタスクを確認しましょう。</p>
+        <h1 class="page-title" th:text="${title}">ToDo</h1>
+        <p><a href="/todos">タスク一覧</a> ・ <a href="/profile">プロフィール・ポイント</a></p>
     </main>
     <th:block th:replace="~{fragments/shortcuts :: controls}"></th:block>
 </body>

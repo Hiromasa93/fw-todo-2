@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロフィール</title>
+    <th:block th:replace="~{fragments/theme :: head}"></th:block>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .profile-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+        .level-number { color: var(--primary); font-size: 2rem; font-weight: 700; }
+        .progress-track { height: 14px; border-radius: 999px; background: var(--hover); overflow: hidden; margin: 12px 0; }
+        .progress-fill { height: 100%; background: var(--primary); border-radius: inherit; }
+        .history-table { width: 100%; border-collapse: collapse; background: var(--surface); }
+        .history-table th, .history-table td { border: 1px solid var(--border); padding: 10px; text-align: left; }
+        .points { font-weight: 700; color: var(--primary); white-space: nowrap; }
+    </style>
+</head>
+<body>
+<div th:replace="~{fragments/theme :: controls}"></div>
+<main class="container">
+    <h1 class="page-title">プロフィール</h1>
+    <section class="profile-card" aria-label="レベルとポイント">
+        <div class="level-number" th:text="|レベル ${profile.level()}|">レベル 1</div>
+        <p>累計 <strong th:text="|${profile.totalPoints()} pt|">0 pt</strong></p>
+        <div class="progress-track" role="progressbar" aria-label="次のレベルまでの進捗"
+             th:attr="aria-valuenow=${profile.progressPercent()},aria-valuemin=0,aria-valuemax=100">
+            <div class="progress-fill" th:style="|width: ${profile.progressPercent()}%|"></div>
+        </div>
+        <p th:text="|次のレベルまで ${profile.pointsToNextLevel()} pt（${profile.pointsInLevel()} / ${profile.pointsInLevel() + profile.pointsToNextLevel()} pt）|"></p>
+        <a href="/todos">タスク一覧へ</a>
+    </section>
+    <h2>ポイント履歴</h2>
+    <p th:if="${#lists.isEmpty(history)}">ポイント履歴はまだありません。</p>
+    <table class="history-table" th:if="${!#lists.isEmpty(history)}">
+        <thead><tr><th>日時</th><th>アクション</th><th>ポイント</th></tr></thead>
+        <tbody><tr th:each="entry : ${history}">
+            <td th:text="${#temporals.format(entry.createdAt(), 'yyyy-MM-dd HH:mm')}">2026-01-01 10:00</td>
+            <td th:text="${entry.action()}">タスク完了</td>
+            <td class="points" th:text="|+${entry.points()} pt|">+10 pt</td>
+        </tr></tbody>
+    </table>
+</main>
+</body>
+</html>
