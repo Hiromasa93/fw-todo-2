@@ -40,6 +40,11 @@
         <p><a class="btn" th:href="@{/api/todos.csv(keyword=${keyword},category=${category},order=${order},includeCompleted=${includeCompleted},trash=${trash ? '1' : null})}">CSVを書き出す</a></p>
         <p><a class="btn" th:if="${!trash}" href="/todos/new">新規登録</a> <a class="link" th:if="${!trash}" href="/calendar">カレンダーで見る</a> <a class="link" th:if="${!trash}" href="/todos?trash=1">削除したものを見る</a> <a class="link" th:if="${trash}" href="/todos">一覧に戻る</a></p>
         <p data-empty-todos th:if="${#lists.isEmpty(todos)}" th:text="${trash} ? '削除したものはありません' : 'まだ1件も登録されていません'">まだ1件も登録されていません</p>
+        <div class="view-switcher" role="group" aria-label="タスクの表示モード" data-view-switcher>
+            <button type="button" class="view-switcher-button" data-view="list" aria-pressed="false">リスト</button>
+            <button type="button" class="view-switcher-button" data-view="grid" aria-pressed="false">グリッド</button>
+            <button type="button" class="view-switcher-button" data-view="table" aria-pressed="true">テーブル</button>
+        </div>
         <form id="bulk-delete-form" th:if="${!trash}" th:hidden="${#lists.isEmpty(todos)}" th:action="@{/todos/bulk-delete}" method="post">
             <input type="hidden" name="keyword" th:value="${keyword}">
             <input type="hidden" name="category" th:value="${category}">
@@ -56,7 +61,7 @@
             </div>
             <p>全選択は表示中のページが対象です。</p>
         </form>
-        <table class="todo-table" th:hidden="${#lists.isEmpty(todos)}">
+        <table class="todo-table view-table" data-todo-views th:hidden="${#lists.isEmpty(todos)}">
             <thead>
                 <tr>
                     <th th:if="${!trash}"><label><input id="select-all" type="checkbox"> 全選択</label></th>
@@ -120,6 +125,27 @@
         </nav>
     </main>
     <script>
+        (() => {
+            const storageKey = 'todo-list-view';
+            const validViews = ['list', 'grid', 'table'];
+            const table = document.querySelector('[data-todo-views]');
+            const buttons = document.querySelectorAll('[data-view-switcher] [data-view]');
+            if (!table || !buttons.length) return;
+            const applyView = (view, persist = false) => {
+                const selected = validViews.includes(view) ? view : 'table';
+                table.classList.remove(...validViews.map(name => `view-${name}`));
+                table.classList.add(`view-${selected}`);
+                buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === selected)));
+                if (persist) {
+                    try { localStorage.setItem(storageKey, selected); } catch (error) { /* storage may be disabled */ }
+                }
+            };
+            let savedView = 'table';
+            try { savedView = localStorage.getItem(storageKey) || savedView; } catch (error) { /* storage may be disabled */ }
+            applyView(savedView);
+            buttons.forEach(button => button.addEventListener('click', () => applyView(button.dataset.view, true)));
+        })();
+
         const bulkDeleteForm = document.getElementById('bulk-delete-form');
         if (bulkDeleteForm) {
             const selectAll = document.getElementById('select-all');
