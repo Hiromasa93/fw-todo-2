@@ -9,7 +9,7 @@
 <body>
     <main class="container">
         <h1 class="page-title" th:text="${trash} ? '削除したもの' : 'やること一覧'">やること一覧</h1>
-        <p class="flash" th:if="${message}" th:text="${message}"></p>
+        <p class="flash" role="status" th:if="${message}" th:text="${message}"></p>
         <form class="search-bar" action="/todos" method="get">
             <input type="hidden" name="order" th:value="${order}">
             <input type="hidden" name="trash" th:if="${trash}" value="1">
@@ -36,7 +36,14 @@
             <input type="hidden" name="order" th:value="${order}">
             <input type="hidden" name="includeCompleted" th:value="${includeCompleted}">
             <input type="hidden" name="page" th:value="${currentPage}">
-            <p><button class="btn" id="bulk-delete-button" type="submit" disabled>選択した項目を削除</button></p>
+            <div class="bulk-actions" role="group" aria-label="選択した項目の操作">
+                <span id="selection-count" role="status" aria-live="polite" aria-atomic="true">0件選択中</span>
+                <button class="btn bulk-action" type="submit" name="completed" value="true"
+                        th:formaction="@{/todos/bulk-status}" disabled>完了にする</button>
+                <button class="btn sub bulk-action" type="submit" name="completed" value="false"
+                        th:formaction="@{/todos/bulk-status}" disabled>未完了に戻す</button>
+                <button class="btn sub bulk-action" id="bulk-delete-button" type="submit" disabled>選択した項目を削除</button>
+            </div>
             <p>全選択は表示中のページが対象です。</p>
         </form>
         <table class="todo-table" th:unless="${#lists.isEmpty(todos)}">
@@ -107,12 +114,14 @@
         if (bulkDeleteForm) {
             const selectAll = document.getElementById('select-all');
             const checkboxes = Array.from(document.querySelectorAll('.todo-select'));
-            const deleteButton = document.getElementById('bulk-delete-button');
+            const actionButtons = bulkDeleteForm.querySelectorAll('.bulk-action');
+            const selectionCount = document.getElementById('selection-count');
             const updateSelection = () => {
                 const count = checkboxes.filter(checkbox => checkbox.checked).length;
                 selectAll.checked = count === checkboxes.length && count > 0;
                 selectAll.indeterminate = count > 0 && count < checkboxes.length;
-                deleteButton.disabled = count === 0;
+                actionButtons.forEach(button => { button.disabled = count === 0; });
+                selectionCount.textContent = `${count}件選択中`;
             };
             selectAll.addEventListener('change', () => {
                 checkboxes.forEach(checkbox => { checkbox.checked = selectAll.checked; });
@@ -122,11 +131,17 @@
             window.addEventListener('pageshow', updateSelection);
             bulkDeleteForm.addEventListener('submit', event => {
                 const count = checkboxes.filter(checkbox => checkbox.checked).length;
-                if (count === 0 || !window.confirm(`選択した${count}件を削除しますか？`)) {
+                const deleting = !event.submitter || event.submitter.id === 'bulk-delete-button';
+                if (count === 0 || (deleting && !window.confirm(`選択した${count}件を削除しますか？`))) {
                     event.preventDefault();
                 }
             });
             updateSelection();
+        }
+
+        const flashMessage = document.querySelector('.flash');
+        if (flashMessage) {
+            window.setTimeout(() => flashMessage.remove(), 5000);
         }
 
         const today = new Date();

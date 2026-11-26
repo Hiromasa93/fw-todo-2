@@ -109,6 +109,27 @@ public class HomeController {
         return "redirect:/todos";
     }
 
+    @PostMapping("/todos/bulk-status")
+    public String bulkStatus(@RequestParam(name = "ids", required = false) List<Long> ids,
+            @RequestParam(name = "completed") boolean completed,
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "") String category,
+            @RequestParam(defaultValue = "asc") String order,
+            @RequestParam(defaultValue = "false") boolean includeCompleted,
+            @RequestParam(defaultValue = "1") int page,
+            RedirectAttributes redirectAttributes) {
+        int updated = todoService.updateStatusAll(ids, completed);
+        redirectAttributes.addFlashAttribute("message", ids == null || ids.isEmpty()
+                ? "変更する項目を選択してください"
+                : updated + "件を" + (completed ? "完了" : "未完了") + "に変更しました");
+        redirectAttributes.addAttribute("keyword", keyword);
+        redirectAttributes.addAttribute("category", category);
+        redirectAttributes.addAttribute("order", "desc".equals(order) ? "desc" : "asc");
+        redirectAttributes.addAttribute("includeCompleted", includeCompleted);
+        redirectAttributes.addAttribute("page", page);
+        return "redirect:/todos";
+    }
+
     @PostMapping("/todos/{id}/restore")
     public String restore(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         todoService.restore(id);

@@ -179,6 +179,17 @@ body {
     cursor: not-allowed;
 }
 
+.bulk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #8b9bb2;
+    border-radius: 8px;
+    background: #1e293b;
+}
+
 .link {
     color: #93c5fd;
     text-decoration: underline;

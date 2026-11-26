@@ -48,6 +48,74 @@ class TodoappApplicationTests {
 
 	@Test
 	@Transactional
+	void bulkStatusUpdatesOnlySelectedActiveTodosAndPreservesCompletionTime() throws Exception {
+		String keyword = "bulk-status-" + UUID.randomUUID();
+		List<Long> ids = new ArrayList<>();
+		for (int i = 0; i < 4; i++) {
+			Todo todo = new Todo();
+			todo.setTitle(keyword + "-" + i);
+			todo.setCategory("資格");
+			todo.setPriority(2);
+			todo.setCompleted(false);
+			todoService.create(todo);
+			ids.add(todo.getId());
+		}
+		todoService.delete(ids.get(3));
+		var result = mockMvc.perform(post("/todos/bulk-status")
+				.param("ids", ids.get(0).toString(), ids.get(1).toString(), ids.get(0).toString(), ids.get(3).toString())
+				.param("completed", "true").param("keyword", keyword).param("category", "資格")
+				.param("order", "desc").param("includeCompleted", "true").param("page", "2"))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(flash().attribute("message", "2件を完了に変更しました")).andReturn();
+		assertThat(result.getModelAndView().getModel()).containsEntry("keyword", keyword)
+				.containsEntry("category", "資格").containsEntry("order", "desc")
+				.containsEntry("includeCompleted", "true").containsEntry("page", "2");
+		for (Long id : ids.subList(0, 2)) {
+			assertThat(todoService.findById(id).getCompleted()).isTrue();
+			assertThat(todoService.findById(id).getCompletedAt()).isNotNull();
+		}
+		assertThat(todoService.findById(ids.get(2)).getCompleted()).isFalse();
+		Todo trashed = todoService.searchTrash(keyword, "", "asc", null, null).get(0);
+		assertThat(trashed.getCompleted()).isFalse();
+		assertThat(trashed.getCompletedAt()).isNull();
+		LocalDateTime original = LocalDateTime.of(2026, 4, 5, 12, 34, 56);
+		jdbcTemplate.update("UPDATE todos SET completed_at = ? WHERE id = ?", original, ids.get(0));
+		assertThat(todoService.updateStatusAll(ids, true)).isEqualTo(1);
+		assertThat(todoService.findById(ids.get(0)).getCompletedAt()).isEqualTo(original);
+		mockMvc.perform(post("/todos/bulk-status").param("ids", ids.get(0).toString(), ids.get(1).toString())
+				.param("completed", "false"))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(flash().attribute("message", "2件を未完了に変更しました"));
+		assertThat(todoService.findById(ids.get(0)).getCompleted()).isFalse();
+		assertThat(todoService.findById(ids.get(0)).getCompletedAt()).isNull();
+		assertThat(todoService.findById(ids.get(1)).getCompletedAt()).isNull();
+		assertThat(todoService.findById(ids.get(2)).getCompleted()).isTrue();
+		String html = mockMvc.perform(get("/todos").param("keyword", keyword))
+				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+		assertThat(html).contains("id=\"selection-count\"", "0件選択中", "formaction=\"/todos/bulk-status\"", "完了にする", "未完了に戻す");
+	}
+
+	@Test
+	@Transactional
+	void bulkStatusRejectsInvalidRequestsAndEmptyListsCannotUpdateAllRows() throws Exception {
+		Long before = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM todos WHERE completed = true", Long.class);
+		mockMvc.perform(post("/todos/bulk-status").param("completed", "true"))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(flash().attribute("message", "変更する項目を選択してください"));
+		assertThat(todoService.updateStatusAll(null, true)).isZero();
+		assertThat(todoService.updateStatusAll(List.of(), true)).isZero();
+		assertThat(todoMapper.updateStatusByIds(null, true)).isZero();
+		assertThat(todoMapper.updateStatusByIds(List.of(), true)).isZero();
+		assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM todos WHERE completed = true", Long.class)).isEqualTo(before);
+		mockMvc.perform(post("/todos/bulk-status").param("ids", "1")).andExpect(status().isBadRequest());
+		mockMvc.perform(post("/todos/bulk-status").param("ids", "invalid").param("completed", "true"))
+				.andExpect(status().isBadRequest());
+		mockMvc.perform(post("/todos/bulk-status").param("ids", "1").param("completed", "invalid"))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	@Transactional
 	void bulkDeleteOnlyMovesSelectedTodosToTrashAndKeepsListFilters() throws Exception {
 		String keyword = "bulk-check-" + UUID.randomUUID();
 		List<Long> ids = new ArrayList<>();

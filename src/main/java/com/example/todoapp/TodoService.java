@@ -81,6 +81,13 @@ public class TodoService {
         return todoMapper.deleteByIds(ids);
     }
 
+    public int updateStatusAll(List<Long> ids, boolean completed) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        return todoMapper.updateStatusByIds(ids, completed);
+    }
+
     public int restore(Long id) {
         log.info("Restoring todo id={}", id);
         return todoMapper.restoreById(id);
