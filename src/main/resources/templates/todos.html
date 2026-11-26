@@ -41,7 +41,24 @@
             </thead>
             <tbody>
                 <tr th:each="todo : ${todos}">
-                    <td th:text="${todo.title}">やること</td>
+                    <td>
+                        <div class="todo-title">
+                            <form class="pin-form" th:if="${!trash}" th:action="@{/todos/{id}/pin(id=${todo.id})}" method="post">
+                                <input type="hidden" name="keyword" th:value="${keyword}">
+                                <input type="hidden" name="category" th:value="${category}">
+                                <input type="hidden" name="order" th:value="${order}">
+                                <input type="hidden" name="includeCompleted" th:value="${includeCompleted}">
+                                <button class="pin-button" type="submit"
+                                        th:classappend="${todo.pinned} ? 'is-pinned'"
+                                        th:attr="aria-label=${todo.pinned} ? '印を外す' : '印を付ける',aria-pressed=${todo.pinned}"
+                                        th:title="${todo.pinned} ? '印を外す' : '印を付ける'">
+                                    <span aria-hidden="true" th:text="${todo.pinned} ? '★' : '☆'">☆</span>
+                                </button>
+                            </form>
+                            <span th:if="${trash and todo.pinned}" class="pin-mark" aria-label="印あり">★</span>
+                            <span th:text="${todo.title}">やること</span>
+                        </div>
+                    </td>
                     <td th:text="${todo.category}">ジャンル</td>
                     <td th:text="${todo.priority == 1 ? '高' : (todo.priority == 2 ? '中' : '低')}">優先度</td>
                     <td th:text="${todo.dueDate != null ? #temporals.format(todo.dueDate, 'yyyy/MM/dd') : '期限なし'}">期限</td>

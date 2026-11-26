@@ -4,7 +4,7 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.todoapp.TodoMapper">
     <select id="search" resultType="com.example.todoapp.Todo">
-        SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at, deleted_at
+        SELECT id, title, detail, category, priority, due_date, completed, pinned, created_at, updated_at, deleted_at
         FROM todos
         <where>
             <choose>
@@ -27,14 +27,14 @@
                 AND completed = false
             </if>
         </where>
-        ORDER BY due_date
+        ORDER BY pinned DESC, due_date
         <choose>
             <when test="order == 'desc'">DESC</when>
             <otherwise>ASC</otherwise>
         </choose>
     </select>
     <select id="findById" resultType="com.example.todoapp.Todo">
-        SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at, deleted_at
+        SELECT id, title, detail, category, priority, due_date, completed, pinned, created_at, updated_at, deleted_at
         FROM todos
         WHERE id = #{id} AND deleted_at IS NULL
     </select>
@@ -51,6 +51,10 @@
             due_date = #{dueDate},
             completed = #{completed}
         WHERE id = #{id}
+    </update>
+    <update id="togglePinned">
+        UPDATE todos SET pinned = NOT pinned
+        WHERE id = #{id} AND deleted_at IS NULL
     </update>
     <update id="deleteById">
         UPDATE todos SET deleted_at = CURRENT_TIMESTAMP

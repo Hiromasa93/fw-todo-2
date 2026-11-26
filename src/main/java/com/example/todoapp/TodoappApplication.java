@@ -20,6 +20,14 @@ public class TodoappApplication {
 			if (columnCount != null && columnCount == 0) {
 				jdbcTemplate.execute("ALTER TABLE todos ADD COLUMN deleted_at DATETIME NULL");
 			}
+			Integer pinnedColumnCount = jdbcTemplate.queryForObject(
+					"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+							+ "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'todos' "
+							+ "AND COLUMN_NAME = 'pinned'",
+					Integer.class);
+			if (pinnedColumnCount != null && pinnedColumnCount == 0) {
+				jdbcTemplate.execute("ALTER TABLE todos ADD COLUMN pinned BOOLEAN NOT NULL DEFAULT FALSE");
+			}
 		};
 	}
 

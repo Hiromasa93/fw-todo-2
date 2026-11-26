@@ -19,6 +19,8 @@ public interface TodoMapper {
 
     int update(Todo todo);
 
+    int togglePinned(Long id);
+
     int deleteById(Long id);
 
     int restoreById(Long id);

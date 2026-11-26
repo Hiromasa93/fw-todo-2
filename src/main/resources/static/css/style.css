@@ -42,6 +42,53 @@ body {
     font-weight: bold;
 }
 
+.todo-title {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.pin-form {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.pin-button {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    background: transparent;
+    color: #64748b;
+    font: inherit;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.pin-button.is-pinned,
+.pin-mark {
+    color: #b45309;
+}
+
+.pin-button:hover {
+    background: transparent;
+    color: #b45309;
+}
+
+.pin-button:focus-visible {
+    outline: none;
+    text-decoration: underline;
+}
+
 .flash {
     margin: 0 0 16px;
     border: 1px solid #94a3b8;

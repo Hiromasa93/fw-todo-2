@@ -43,6 +43,10 @@ public class TodoService {
         return todoMapper.update(todo);
     }
 
+    public int togglePinned(Long id) {
+        return todoMapper.togglePinned(id);
+    }
+
     public int delete(Long id) {
         log.info("Deleting todo id={}", id);
         return todoMapper.deleteById(id);

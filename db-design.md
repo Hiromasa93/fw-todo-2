@@ -23,6 +23,7 @@
 | `priority` | `INT` | はい | `2` | 優先度。`1`＝高、`2`＝中、`3`＝低 |
 | `due_date` | `DATE` | いいえ | なし | 期限。日付のみを保存 |
 | `completed` | `BOOLEAN` | はい | `FALSE`（未完了） | 完了状態。`TRUE`＝完了、`FALSE`＝未完了 |
+| `pinned` | `BOOLEAN` | はい | `FALSE`（印なし） | 印の状態。`TRUE`＝印あり、`FALSE`＝印なし |
 | `created_at` | `DATETIME` | はい | MySQLが登録時に設定 | 登録した日時。入力画面からは入力しない |
 | `updated_at` | `DATETIME` | はい | MySQLが登録時と更新時に設定 | 最後に直した日時。入力画面からは入力しない |
 | `deleted_at` | `DATETIME` | いいえ | なし | 削除扱いにした日時。`NULL`（空）の行は通常の項目 |
@@ -31,9 +32,9 @@
 
 - `id` は主キー（行を一意に識別する値）です。
 - `id` は自動採番（新しい行ごとに番号を自動で増やす仕組み）です。
-- `title`、`category`、`priority`、`completed`、`created_at`、`updated_at` は `NOT NULL`（空の値を許さない設定）です。
+- `title`、`category`、`priority`、`completed`、`pinned`、`created_at`、`updated_at` は `NOT NULL`（空の値を許さない設定）です。
 - `detail` と `due_date` は `NULL`（値なし）を許可します。
-- `priority` の初期値は `2`（中）、`completed` の初期値は `FALSE`（未完了）です。
+- `priority` の初期値は `2`（中）、`completed` の初期値は `FALSE`（未完了）、`pinned` の初期値は `FALSE`（印なし）です。
 - ジャンルとして保存する値は「デザイン」「マーケティング」「プログラミング」「資格」「就職活動」のいずれかです。選択肢の確認はアプリ側で行います。
 
 ### 3.3 CREATE TABLE 文（DDL）
@@ -49,6 +50,7 @@ CREATE TABLE todos (
     priority INT NOT NULL DEFAULT 2,
     due_date DATE NULL,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
+    pinned BOOLEAN NOT NULL DEFAULT FALSE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME NULL,
