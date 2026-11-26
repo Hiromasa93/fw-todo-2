@@ -68,7 +68,11 @@
                         <span th:text="${todo.priority == 1 ? '高' : (todo.priority == 2 ? '中' : '低')}">優先度</span>
                     </td>
                     <td th:text="${todo.dueDate != null ? #temporals.format(todo.dueDate, 'yyyy/MM/dd') : '期限なし'}">期限</td>
-                    <td th:text="${todo.completed ? '完了' : '未完了'}">状態</td>
+                    <td>
+                        <span th:text="${todo.completed ? '完了' : '未完了'}">状態</span>
+                        <span th:if="${todo.completed and todo.completedAt != null}"
+                              th:text="${#temporals.format(todo.completedAt, 'yyyy/MM/dd')}">2026/04/05</span>
+                    </td>
                     <td th:if="${!trash}"><a class="link" th:href="@{/todos/{id}/edit(id=${todo.id})}">編集</a> <a class="link" th:href="@{/todos/{id}/delete(id=${todo.id})}">削除</a></td>
                     <td th:if="${trash}"><form th:action="@{/todos/{id}/restore(id=${todo.id})}" method="post"><button class="btn sub" type="submit">戻す</button></form></td>
                 </tr>

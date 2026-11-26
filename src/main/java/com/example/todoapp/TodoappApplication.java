@@ -28,6 +28,16 @@ public class TodoappApplication {
 			if (pinnedColumnCount != null && pinnedColumnCount == 0) {
 				jdbcTemplate.execute("ALTER TABLE todos ADD COLUMN pinned BOOLEAN NOT NULL DEFAULT FALSE");
 			}
+			Integer completedAtColumnCount = jdbcTemplate.queryForObject(
+					"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+							+ "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'todos' "
+							+ "AND COLUMN_NAME = 'completed_at'",
+					Integer.class);
+			if (completedAtColumnCount != null && completedAtColumnCount == 0) {
+				jdbcTemplate.execute("ALTER TABLE todos ADD COLUMN completed_at DATETIME NULL");
+				jdbcTemplate.update("UPDATE todos SET completed_at = ? "
+						+ "WHERE id = 1 AND completed = true AND completed_at IS NULL", "2026-04-05 00:00:00");
+			}
 		};
 	}
 

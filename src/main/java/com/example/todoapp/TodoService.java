@@ -55,7 +55,14 @@ public class TodoService {
 
     public int update(Todo todo) {
         log.info("Updating todo id={}", todo.getId());
-        return todoMapper.update(todo);
+        int updated = todoMapper.update(todo);
+        if (updated > 0) {
+            Todo saved = todoMapper.findById(todo.getId());
+            if (saved != null) {
+                todo.setCompletedAt(saved.getCompletedAt());
+            }
+        }
+        return updated;
     }
 
     public int togglePinned(Long id) {
