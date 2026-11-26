@@ -1,5 +1,7 @@
 package com.example.todoapp;
 
+import java.util.List;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -85,6 +87,25 @@ public class HomeController {
     public String delete(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         todoService.delete(id);
         redirectAttributes.addFlashAttribute("message", "削除しました");
+        return "redirect:/todos";
+    }
+
+    @PostMapping("/todos/bulk-delete")
+    public String bulkDelete(@RequestParam(name = "ids", required = false) List<Long> ids,
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "") String category,
+            @RequestParam(defaultValue = "asc") String order,
+            @RequestParam(defaultValue = "false") boolean includeCompleted,
+            @RequestParam(defaultValue = "1") int page,
+            RedirectAttributes redirectAttributes) {
+        int deleted = todoService.deleteAll(ids);
+        redirectAttributes.addFlashAttribute("message", ids == null || ids.isEmpty()
+                ? "削除する項目を選択してください" : deleted + "件削除しました");
+        redirectAttributes.addAttribute("keyword", keyword);
+        redirectAttributes.addAttribute("category", category);
+        redirectAttributes.addAttribute("order", "desc".equals(order) ? "desc" : "asc");
+        redirectAttributes.addAttribute("includeCompleted", includeCompleted);
+        redirectAttributes.addAttribute("page", page);
         return "redirect:/todos";
     }
 

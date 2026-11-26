@@ -2,6 +2,8 @@ package com.example.todoapp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
@@ -40,6 +42,60 @@ class TodoappApplicationTests {
 
 	@Autowired
 	MockMvc mockMvc;
+
+	@Autowired
+	TodoMapper todoMapper;
+
+	@Test
+	@Transactional
+	void bulkDeleteOnlyMovesSelectedTodosToTrashAndKeepsListFilters() throws Exception {
+		String keyword = "bulk-check-" + UUID.randomUUID();
+		List<Long> ids = new ArrayList<>();
+		for (int i = 0; i < 3; i++) {
+			Todo todo = new Todo();
+			todo.setTitle(keyword + "-" + i);
+			todo.setCategory("資格");
+			todo.setPriority(2);
+			todo.setCompleted(false);
+			todoService.create(todo);
+			ids.add(todo.getId());
+		}
+		String html = mockMvc.perform(get("/todos").param("keyword", keyword))
+				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+		assertThat(html).contains("id=\"select-all\"", "form=\"bulk-delete-form\"", "name=\"ids\"", "選択した項目を削除");
+		var result = mockMvc.perform(post("/todos/bulk-delete")
+				.param("ids", ids.get(0).toString(), ids.get(2).toString(), ids.get(0).toString())
+				.param("keyword", keyword).param("category", "資格").param("order", "desc")
+				.param("includeCompleted", "true").param("page", "2"))
+				.andExpect(status().is3xxRedirection()).andExpect(flash().attribute("message", "2件削除しました"))
+				.andReturn();
+		assertThat(result.getModelAndView().getModel()).containsEntry("keyword", keyword)
+				.containsEntry("category", "資格").containsEntry("order", "desc")
+				.containsEntry("includeCompleted", "true").containsEntry("page", "2");
+		assertThat(todoService.search(keyword, "", "asc", null, null)).extracting(Todo::getId).containsExactly(ids.get(1));
+		assertThat(todoService.searchTrash(keyword, "", "asc", null, null)).extracting(Todo::getId)
+				.containsExactlyInAnyOrder(ids.get(0), ids.get(2));
+		assertThat(todoService.deleteAll(List.of(ids.get(0), ids.get(2)))).isZero();
+		String trash = mockMvc.perform(get("/todos").param("keyword", keyword).param("trash", "1"))
+				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+		assertThat(trash).doesNotContain("id=\"bulk-delete-form\"", "class=\"todo-select\"");
+	}
+
+	@Test
+	@Transactional
+	void bulkDeleteWithoutSelectionDoesNotDeleteAnything() throws Exception {
+		Long before = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM todos WHERE deleted_at IS NULL", Long.class);
+		mockMvc.perform(post("/todos/bulk-delete"))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(flash().attribute("message", "削除する項目を選択してください"));
+		assertThat(todoService.deleteAll(null)).isZero();
+		assertThat(todoService.deleteAll(List.of())).isZero();
+		assertThat(todoMapper.deleteByIds(List.of())).isZero();
+		assertThat(todoMapper.deleteByIds(null)).isZero();
+		assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM todos WHERE deleted_at IS NULL", Long.class)).isEqualTo(before);
+		mockMvc.perform(post("/todos/bulk-delete").param("ids", "invalid"))
+				.andExpect(status().isBadRequest());
+	}
 
 	@Test
 	void weeklyCalendarHasSevenSundayFirstCellsAcrossMonthAndYearBoundaries() throws Exception {
