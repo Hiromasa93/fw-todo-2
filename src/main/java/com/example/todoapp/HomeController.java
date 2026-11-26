@@ -18,9 +18,11 @@ import jakarta.validation.Valid;
 public class HomeController {
 
     private final TodoService todoService;
+    private final TagService tagService;
 
-    public HomeController(TodoService todoService) {
+    public HomeController(TodoService todoService, TagService tagService) {
         this.todoService = todoService;
+        this.tagService = tagService;
     }
 
     @GetMapping("/")
@@ -145,6 +147,7 @@ public class HomeController {
 
     @PostMapping("/todos/confirm")
     public String confirm(@Valid @ModelAttribute("todo") Todo todo, BindingResult bindingResult, Model model) {
+        todo.setTags(tagService.resolve(todo.getTagIds()));
         if (bindingResult.hasErrors()) {
             return "create";
         }
@@ -154,6 +157,7 @@ public class HomeController {
 
     @PostMapping("/todos/new")
     public String revise(@ModelAttribute("todo") Todo todo, Model model) {
+        todo.setTags(tagService.resolve(todo.getTagIds()));
         model.addAttribute("todo", todo);
         return "create";
     }
@@ -173,6 +177,7 @@ public class HomeController {
     @PostMapping("/todos/{id}/confirm")
     public String editConfirm(@PathVariable Long id, @Valid @ModelAttribute("todo") Todo todo,
             BindingResult bindingResult, Model model) {
+        todo.setTags(tagService.resolve(todo.getTagIds()));
         if (bindingResult.hasErrors()) {
             model.addAttribute("id", id);
             return "edit";
@@ -184,6 +189,7 @@ public class HomeController {
 
     @PostMapping("/todos/{id}/edit")
     public String editRevise(@PathVariable Long id, @ModelAttribute("todo") Todo todo, Model model) {
+        todo.setTags(tagService.resolve(todo.getTagIds()));
         model.addAttribute("todo", todo);
         model.addAttribute("id", id);
         return "edit";

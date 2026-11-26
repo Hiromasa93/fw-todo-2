@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>やること編集</title>
     <link rel="stylesheet" href="/css/style.css">
+    <script th:src="@{/js/tags.js}" defer></script>
 </head>
 <body>
     <main class="container">
@@ -50,6 +51,7 @@
                 <label class="form-label" for="completed">完了</label>
                 <input class="form-input" type="checkbox" id="completed" th:field="*{completed}">
             </div>
+            <div th:replace="~{fragments/tags :: picker}"></div>
             <div class="confirm-actions">
                 <button class="btn" type="submit">確認する</button>
                 <a class="btn sub" href="/todos">一覧へ</a>

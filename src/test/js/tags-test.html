@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="UTF-8">
+<title>Tag picker DOM tests</title>
+<form>
+    <div data-tag-picker data-search-url="http://localhost/api/tags/search" data-create-url="http://localhost/api/tags">
+        <div data-tag-chips></div>
+        <input role="combobox" aria-expanded="false">
+        <button type="button" data-add-tag disabled>タグを追加</button>
+        <ul role="listbox" hidden></ul>
+        <p role="status"></p>
+    </div>
+</form>
+<pre id="result">RUNNING</pre>
+<script>
+const calls = [];
+let respond = async () => ({ ok: true, json: async () => [{id: 1, name: '<b>Java</b>'}, {id: 2, name: 'JavaScript'}] });
+window.fetch = (url, options) => { calls.push({url, options}); return respond(url, options); };
+</script>
+<script src="../../main/resources/static/js/tags.js"></script>
+<script>
+(async () => {
+    const input = document.querySelector('input');
+    const list = document.querySelector('ul');
+    const chips = document.querySelector('[data-tag-chips]');
+    const status = document.querySelector('[role="status"]');
+    const result = document.querySelector('#result');
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const check = (condition, message) => { if (!condition) throw new Error(message); };
+    const type = (value) => { input.value = value; input.dispatchEvent(new Event('input')); };
+    const key = (value) => input.dispatchEvent(new KeyboardEvent('keydown', {key: value, cancelable: true}));
+    try {
+        type('J');
+        await wait(150);
+        check(calls.length === 0, 'debounce waits');
+        type('Java');
+        await wait(200);
+        check(calls.length === 0, 'debounce resets');
+        await wait(150);
+        check(calls.length === 1 && list.children.length === 2 && !list.hidden, 'fetch suggestions');
+        check(calls[0].url.searchParams.get('q') === 'Java', 'query encoding');
+        key('ArrowDown'); key('Enter');
+        check(chips.querySelector('input').name === 'tagIds' && chips.querySelector('input').value === '1', 'hidden tag ID');
+        check(!chips.querySelector('b') && chips.textContent.includes('<b>Java</b>'), 'tag names are text');
+        type('Java'); await wait(350);
+        check(list.children.length === 1 && list.textContent === 'JavaScript', 'exclude selected tag');
+        list.firstElementChild.click();
+        check(chips.children.length === 2, 'click selects chip');
+        chips.querySelector('button').click();
+        check(chips.children.length === 1, 'remove chip');
+        const before = calls.length;
+        input.dispatchEvent(new CompositionEvent('compositionstart'));
+        type('日本語'); await wait(350);
+        check(calls.length === before, 'IME composition does not fetch');
+        input.dispatchEvent(new CompositionEvent('compositionend'));
+        await wait(350);
+        check(calls.length === before + 1, 'IME completion fetches');
+        key('Escape');
+        check(list.hidden && input.getAttribute('aria-expanded') === 'false', 'escape closes');
+        let finish;
+        respond = () => new Promise((resolve) => { finish = resolve; });
+        type('old'); await wait(350);
+        const pending = calls.at(-1);
+        type('');
+        check(pending.options.signal.aborted, 'request aborts');
+        finish({ok: true, json: async () => [{id: 3, name: 'stale'}]});
+        await wait(10);
+        check(list.hidden && list.children.length === 0, 'stale response ignored');
+        respond = async () => ({ok: false});
+        type('failure'); await wait(350);
+        check(status.textContent.includes('取得できません'), 'network failure is visible');
+        respond = async (url, options) => ({ok: true, json: async () => ({id: 10, name: JSON.parse(options.body).name})});
+        type('買い物');
+        document.querySelector('[data-add-tag]').click();
+        await wait(10);
+        check(chips.querySelector('input[value="10"]') && input.value === '', 'new tag creates selected chip');
+        check(calls.at(-1).options.method === 'POST', 'creation uses POST');
+        type('買い物'); key('Enter'); await wait(10);
+        check(chips.querySelectorAll('input[value="10"]').length === 1, 'existing tag is not duplicated');
+        respond = async () => ({ok: false});
+        type('再試行'); key('Enter'); await wait(10);
+        check(input.value === '再試行' && !input.readOnly && status.textContent.includes('登録できません'), 'creation failure preserves input');
+        let submitCount = 0;
+        const form = document.querySelector('form');
+        form.addEventListener('submit', (event) => { if (!event.defaultPrevented) { submitCount++; event.preventDefault(); } });
+        respond = async (url, options) => ({ok: true, json: async () => ({id: 11, name: JSON.parse(options.body).name})});
+        type('確認時に追加'); form.requestSubmit(); await wait(10);
+        check(submitCount === 1 && chips.querySelector('input[value="11"]'), 'submit includes pending tag');
+        respond = async () => ({ok: false});
+        type('保存失敗'); form.requestSubmit(); await wait(10);
+        check(submitCount === 1 && input.value === '保存失敗', 'failure prevents form submission');
+        type('');
+        result.textContent = 'PASS: debounce, fetch, chips, hidden inputs, escaping, duplicate prevention, removal, IME, keyboard, cancellation, stale results, errors, creation, creation failure, pending tag submission';
+    } catch (error) { result.textContent = 'FAIL: ' + error.message; }
+})();
+</script>
+</html>

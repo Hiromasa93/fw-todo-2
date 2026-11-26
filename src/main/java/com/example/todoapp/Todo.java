@@ -2,6 +2,7 @@ package com.example.todoapp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -15,6 +16,8 @@ import lombok.Data;
 public class Todo {
 
     private Long id;
+    private List<Long> tagIds;
+    private List<Tag> tags = List.of();
 
     @NotBlank(message = "やることを入力してください")
     @Size(max = 255, message = "やることは255文字以内で入力してください")

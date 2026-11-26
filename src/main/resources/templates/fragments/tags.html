@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="picker" class="form-row tag-picker" data-tag-picker
+         th:data-search-url="@{/api/tags/search}" th:data-create-url="@{/api/tags}">
+        <label class="form-label" for="tag-query">タグ</label>
+        <div class="tag-chips" data-tag-chips>
+            <span class="tag-chip" th:each="tag : ${todo.tags}">
+                <span th:text="${tag.name}"></span>
+                <button type="button" data-remove-tag th:attr="aria-label=${tag.name + 'を削除'}">×</button>
+                <input type="hidden" name="tagIds" th:value="${tag.id}">
+            </span>
+        </div>
+        <input type="hidden" name="_tagIds" value="on">
+        <div class="tag-entry">
+        <input class="form-input" id="tag-query" type="text" maxlength="100" autocomplete="off"
+               role="combobox" aria-autocomplete="list" aria-expanded="false"
+               aria-controls="tag-suggestions" aria-describedby="tag-status"
+               placeholder="タグ名を入力してください">
+        <button class="btn sub" type="button" data-add-tag disabled>タグを追加</button>
+        </div>
+        <p class="tag-help">候補を選ぶか、入力後に「タグを追加」またはEnterで登録できます。</p>
+        <ul class="tag-suggestions" id="tag-suggestions" role="listbox" hidden></ul>
+        <p id="tag-status" class="tag-status" role="status" aria-live="polite"></p>
+    </div>
+    <div th:fragment="summary" class="confirm-value">
+        タグ：<span th:if="${#lists.isEmpty(todo.tags)}">（選択なし）</span>
+        <span class="tag-chip" th:each="tag : ${todo.tags}" th:text="${tag.name}"></span>
+    </div>
+    <th:block th:fragment="hidden">
+        <input type="hidden" name="_tagIds" value="on">
+        <input type="hidden" name="tagIds" th:each="tag : ${todo.tags}" th:value="${tag.id}">
+    </th:block>
+</body>
+</html>

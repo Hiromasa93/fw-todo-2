@@ -261,3 +261,16 @@ body {
 
 
 
+.tag-picker { position: relative; }
+.tag-entry { display: flex; align-items: center; gap: 8px; }
+.tag-entry .form-input { flex: 1; min-width: 0; }
+.tag-entry button { flex-shrink: 0; }
+.tag-entry button:disabled { opacity: .5; cursor: default; }
+.tag-help { margin: 6px 0; font-size: .85rem; color: #cbd5e1; }
+.tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tag-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 16px; background: #e8eefc; color: #243b70; }
+.tag-chip button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 1.1rem; padding: 0 3px; }
+.tag-suggestions { position: absolute; left: 0; right: 0; z-index: 10; max-height: 220px; overflow-y: auto; list-style: none; margin: 2px 0 0; padding: 4px 0; border: 1px solid #8b9bb2; border-radius: 6px; background: #1e293b; color: #e2e8f0; box-shadow: 0 4px 12px #0002; }
+.tag-suggestions li { padding: 8px 12px; cursor: pointer; }
+.tag-suggestions li:hover, .tag-suggestions li[aria-selected="true"] { background: #334155; }
+.tag-status { font-size: .85rem; color: #cbd5e1; margin: 6px 0; }

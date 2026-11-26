@@ -5,15 +5,20 @@ import java.time.LocalDate;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
 public class TodoService {
 
     private final TodoMapper todoMapper;
+    private final TagMapper tagMapper;
+    private final TagService tagService;
 
-    public TodoService(TodoMapper todoMapper) {
+    public TodoService(TodoMapper todoMapper, TagMapper tagMapper, TagService tagService) {
         this.todoMapper = todoMapper;
+        this.tagMapper = tagMapper;
+        this.tagService = tagService;
     }
 
     public List<Todo> search(String keyword, String category, String order, LocalDate from, LocalDate to) {
@@ -45,24 +50,48 @@ public class TodoService {
     }
 
     public Todo findById(Long id) {
-        return todoMapper.findById(id);
+        Todo todo = todoMapper.findById(id);
+        if (todo != null) {
+            todo.setTags(tagMapper.findByTodoId(id));
+            todo.setTagIds(todo.getTags().stream().map(Tag::getId).toList());
+        }
+        return todo;
     }
 
+    @Transactional
     public int create(Todo todo) {
         log.info("Creating todo id={}", todo.getId());
-        return todoMapper.insert(todo);
+        List<Tag> tags = tagService.resolve(todo.getTagIds());
+        int inserted = todoMapper.insert(todo);
+        saveTags(todo, tags);
+        return inserted;
     }
 
+    @Transactional
     public int update(Todo todo) {
         log.info("Updating todo id={}", todo.getId());
+        List<Tag> tags = tagService.resolve(todo.getTagIds());
         int updated = todoMapper.update(todo);
         if (updated > 0) {
+            if (todo.getTagIds() != null) {
+                saveTags(todo, tags);
+            }
             Todo saved = todoMapper.findById(todo.getId());
             if (saved != null) {
                 todo.setCompletedAt(saved.getCompletedAt());
             }
         }
         return updated;
+    }
+
+    private void saveTags(Todo todo, List<Tag> tags) {
+        tagMapper.deleteTodoTags(todo.getId());
+        List<Long> ids = tags.stream().map(Tag::getId).toList();
+        if (!ids.isEmpty()) {
+            tagMapper.insertTodoTags(todo.getId(), ids);
+        }
+        todo.setTags(tags);
+        todo.setTagIds(ids);
     }
 
     public int togglePinned(Long id) {
