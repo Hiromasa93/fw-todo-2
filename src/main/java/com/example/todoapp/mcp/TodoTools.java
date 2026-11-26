@@ -2,6 +2,9 @@ package com.example.todoapp.mcp;
 
 import java.time.LocalDate;
 import java.time.DayOfWeek;
+import java.time.ZoneId;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.List;
@@ -118,6 +121,36 @@ public class TodoTools {
             }
         }
         return freeDays;
+    }
+
+    @McpTool(name = "summarize_week", description = "期限が指定期間内のやることを数え、総件数（完了済みを含む）・ジャンル別件数・期限切れ件数を要約して返す。一覧は返さない。期限切れは未完了で期限が日本時間の今日より前のもの。開始日・終了日はそれぞれ省略すると、その側の期限を制限しない")
+    public TodoSummary summarizeWeek(
+            @McpToolParam(description = "期限の開始日（yyyy-MM-dd、当日を含む。省略時は下限なし）", required = false) String from,
+            @McpToolParam(description = "期限の終了日（yyyy-MM-dd、当日を含む。省略時は上限なし）", required = false) String to) {
+        LocalDate fromDate = from == null ? null : LocalDate.parse(from);
+        LocalDate toDate = to == null ? null : LocalDate.parse(to);
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new IllegalArgumentException("開始日は終了日以前の日付にしてください");
+        }
+
+        List<Todo> todos = todoService.search(null, null, "asc", fromDate, toDate);
+        Map<String, Long> categoryCounts = new LinkedHashMap<>();
+        for (String category : List.of("デザイン", "マーケティング", "プログラミング", "資格", "就職活動")) {
+            categoryCounts.put(category, 0L);
+        }
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Tokyo"));
+        long overdueCount = 0;
+        for (Todo todo : todos) {
+            categoryCounts.merge(todo.getCategory(), 1L, Long::sum);
+            if (!Boolean.TRUE.equals(todo.getCompleted()) && todo.getDueDate() != null
+                    && todo.getDueDate().isBefore(today)) {
+                overdueCount++;
+            }
+        }
+        return new TodoSummary(todos.size(), categoryCounts, overdueCount);
+    }
+
+    public record TodoSummary(long totalCount, Map<String, Long> categoryCounts, long overdueCount) {
     }
 
     private void validateCategory(String category) {

@@ -1,4 +1,4 @@
-﻿package com.example.todoapp;
+package com.example.todoapp;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
