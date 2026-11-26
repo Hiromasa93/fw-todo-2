@@ -274,3 +274,13 @@ body {
 .tag-suggestions li { padding: 8px 12px; cursor: pointer; }
 .tag-suggestions li:hover, .tag-suggestions li[aria-selected="true"] { background: #334155; }
 .tag-status { font-size: .85rem; color: #cbd5e1; margin: 6px 0; }
+/* Keyboard focus remains visible even on overdue task rows. */
+.todo-table tbody tr[data-shortcut-task]:focus {
+    outline: 3px solid #2563eb;
+    outline-offset: -3px;
+}
+#keyboard-shortcuts { margin: 1rem auto; max-width: 960px; padding: 0 1rem; }
+#shortcut-help { max-width: min(40rem, 90vw); max-height: 80vh; overflow: auto; border-radius: 8px; }
+#shortcut-help::backdrop { background: rgb(0 0 0 / 45%); }
+#shortcut-help li { margin: .75rem 0; }
+#shortcut-help kbd { font-weight: bold; }

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -13,7 +13,7 @@
         <form class="search-bar" action="/todos" method="get">
             <input type="hidden" name="order" th:value="${order}">
             <input type="hidden" name="trash" th:if="${trash}" value="1">
-            <input class="form-input" type="text" name="keyword" placeholder="やることの名前" th:value="${keyword}">
+            <input class="form-input" type="text" name="keyword" data-shortcut-search aria-label="タスク検索" placeholder="やることの名前" th:value="${keyword}">
             <select class="form-input" name="category">
                 <option value="" th:selected="${category == '' or category == 'すべて'}">すべて</option>
                 <option value="デザイン" th:selected="${category == 'デザイン'}">デザイン</option>
@@ -59,7 +59,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr th:each="todo : ${todos}"
+                <tr th:each="todo : ${todos}" tabindex="0" data-shortcut-task
                     th:attr="data-due-date=${todo.dueDate},data-completed=${todo.completed}">
                     <td th:if="${!trash}">
                         <input class="todo-select" type="checkbox" name="ids" th:value="${todo.id}"
@@ -81,7 +81,7 @@
                                 </button>
                             </form>
                             <span th:if="${trash and todo.pinned}" class="pin-mark" aria-label="印あり">★</span>
-                            <span th:text="${todo.title}">やること</span>
+                            <a class="link" data-shortcut-detail th:href="@{/todos/{id}(id=${todo.id})}" th:text="${todo.title}">やること</a>
                         </div>
                     </td>
                     <td th:text="${todo.category}">ジャンル</td>
@@ -155,5 +155,6 @@
             }
         });
     </script>
+    <th:block th:replace="~{fragments/shortcuts :: controls}"></th:block>
 </body>
 </html>

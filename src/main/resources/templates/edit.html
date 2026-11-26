@@ -10,7 +10,7 @@
 <body>
     <main class="container">
         <h1 class="page-title">やること編集</h1>
-        <form method="post" th:action="@{/todos/{id}/confirm(id=${id})}" th:object="${todo}">
+        <form method="post" th:action="@{/todos/{id}/confirm(id=${id})}" th:object="${todo}" data-shortcut-save>
             <div class="form-row">
                 <label class="form-label" for="title">やること</label>
                 <input class="form-input" type="text" id="title" th:field="*{title}">
@@ -53,10 +53,11 @@
             </div>
             <div th:replace="~{fragments/tags :: picker}"></div>
             <div class="confirm-actions">
-                <button class="btn" type="submit">確認する</button>
+                <button class="btn" type="submit" data-shortcut-submit>確認する</button>
                 <a class="btn sub" href="/todos">一覧へ</a>
             </div>
         </form>
     </main>
+    <th:block th:replace="~{fragments/shortcuts :: controls}"></th:block>
 </body>
 </html>

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -131,5 +131,6 @@
     showTodosInCalendar();
     showWeatherInCalendar();
 </script>
+    <th:block th:replace="~{fragments/shortcuts :: controls}"></th:block>
 </body>
 </html>

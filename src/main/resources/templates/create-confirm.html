@@ -15,7 +15,7 @@
         <p class="confirm-value">優先度：<span th:text="${todo.priority == null ? '（入力なし）' : (todo.priority == 1 ? '高' : (todo.priority == 2 ? '中' : '低'))}">（入力なし）</span></p>
         <p class="confirm-value">期限：<span th:text="${todo.dueDate == null ? '（入力なし）' : #temporals.format(todo.dueDate, 'yyyy-MM-dd')}">（入力なし）</span></p>
         <div th:replace="~{fragments/tags :: summary}"></div>
-        <form action="/todos" method="post" th:object="${todo}">
+        <form action="/todos" method="post" th:object="${todo}" data-shortcut-save>
             <input type="hidden" th:field="*{title}">
             <input type="hidden" th:field="*{detail}">
             <input type="hidden" th:field="*{category}">
@@ -23,10 +23,11 @@
             <input type="hidden" th:field="*{dueDate}">
             <th:block th:replace="~{fragments/tags :: hidden}"></th:block>
             <div class="confirm-actions">
-                <button class="btn" type="submit">登録する</button>
+                <button class="btn" type="submit" data-shortcut-submit>登録する</button>
                 <button class="btn sub" type="submit" formaction="/todos/new" formmethod="post">書き直す</button>
             </div>
         </form>
     </main>
+    <th:block th:replace="~{fragments/shortcuts :: controls}"></th:block>
 </body>
 </html>

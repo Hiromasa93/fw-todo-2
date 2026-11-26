@@ -74,6 +74,17 @@ public class HomeController {
         return "redirect:/todos";
     }
 
+    @GetMapping("/todos/{id}")
+    public String detail(@PathVariable Long id, Model model) {
+        Todo todo = todoService.findById(id);
+        if (todo == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND);
+        }
+        model.addAttribute("todo", todo);
+        return "detail";
+    }
+
     @GetMapping("/todos/{id}/delete")
     public String deleteConfirm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         Todo todo = todoService.findById(id);

@@ -11,5 +11,6 @@
         <h1 class="page-title" th:text="${title}">見出し</h1>
         <p>今日のタスクを確認しましょう。</p>
     </main>
+    <th:block th:replace="~{fragments/shortcuts :: controls}"></th:block>
 </body>
 </html>

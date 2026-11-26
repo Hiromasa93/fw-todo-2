@@ -16,7 +16,7 @@
         <p class="confirm-value">期限：<span th:text="${todo.dueDate == null ? '（入力なし）' : #temporals.format(todo.dueDate, 'yyyy-MM-dd')}">（入力なし）</span></p>
         <p class="confirm-value">完了：<span th:text="${todo.completed ? '完了' : '未完了'}">未完了</span></p>
         <div th:replace="~{fragments/tags :: summary}"></div>
-        <form method="post" th:action="@{/todos/{id}(id=${id})}" th:object="${todo}">
+        <form method="post" th:action="@{/todos/{id}(id=${id})}" th:object="${todo}" data-shortcut-save>
             <input type="hidden" th:field="*{title}">
             <input type="hidden" th:field="*{detail}">
             <input type="hidden" th:field="*{category}">
@@ -25,10 +25,11 @@
             <input type="hidden" th:field="*{completed}">
             <th:block th:replace="~{fragments/tags :: hidden}"></th:block>
             <div class="confirm-actions">
-                <button class="btn" type="submit">保存する</button>
+                <button class="btn" type="submit" data-shortcut-submit>保存する</button>
                 <button class="btn sub" type="submit" th:formaction="@{/todos/{id}/edit(id=${id})}">書き直す</button>
             </div>
         </form>
     </main>
+    <th:block th:replace="~{fragments/shortcuts :: controls}"></th:block>
 </body>
 </html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="UTF-8">
+<title>Keyboard shortcut DOM tests</title>
+<input data-shortcut-search>
+<textarea></textarea><select><option>test</option></select>
+<div contenteditable="true"><span id="editable-child">Edit</span></div>
+<form data-shortcut-save><input required name="title"><button data-shortcut-submit>Save</button></form>
+<table><tbody>
+<tr tabindex="0" data-shortcut-task><td><a href="#detail-1" data-shortcut-detail>One</a><button>Pin</button></td></tr>
+<tr tabindex="0" data-shortcut-task><td><a href="#detail-2" data-shortcut-detail>Two</a></td></tr>
+</tbody></table>
+<div id="keyboard-shortcuts" data-api-url="/api/shortcuts" data-new-url="#new" data-search-url="#search">
+<button data-shortcut-help>Help</button>
+<dialog id="shortcut-help"><p data-shortcut-status></p><ul data-shortcut-list></ul><button data-shortcut-close autofocus>Close</button></dialog>
+</div>
+<pre id="result">RUNNING</pre>
+<script>
+let fetches = 0;
+window.fetch = async () => { fetches++; return {ok: false}; };
+</script>
+<script src="../../main/resources/static/js/shortcuts.js"></script>
+<script>
+(async () => {
+    const check = (condition, message) => { if (!condition) throw new Error(message); };
+    const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+    const key = (value, options = {}, target = document.activeElement) => {
+        const event = new KeyboardEvent('keydown', {key: value, bubbles: true, cancelable: true, ...options});
+        target.dispatchEvent(event);
+        return event;
+    };
+    const rows = [...document.querySelectorAll('[data-shortcut-task]')];
+    const form = document.querySelector('form');
+    const dialog = document.querySelector('dialog');
+    let saves = 0;
+    form.addEventListener('submit', event => { event.preventDefault(); saves++; });
+    try {
+        // These DOM tests cover app dispatch only. Synthetic Ctrl+N cannot
+        // reproduce Chrome's reserved shortcut handling before DOM dispatch.
+        check(key('n', {altKey: true}).defaultPrevented && location.hash === '#new', 'Alt+N opens creation');
+        location.hash = '#reset';
+        check(key('N', {altKey: true}).defaultPrevented && location.hash === '#new', 'Alt+N normalizes key case');
+        location.hash = '#reset';
+        check(!key('n', {ctrlKey: true, altKey: true}).defaultPrevented && location.hash === '#reset', 'AltGr does not create');
+        check(!key('n', {altKey: true, shiftKey: true}).defaultPrevented && location.hash === '#reset', 'Alt+Shift+N ignored');
+        check(!key('n', {altKey: true, isComposing: true}).defaultPrevented && location.hash === '#reset', 'IME does not create');
+        check(key('n', {altKey: true, repeat: true}).defaultPrevented && location.hash === '#reset', 'held Alt+N does not navigate again');
+        check(key('n', {ctrlKey: true}).defaultPrevented && location.hash === '#new', 'Ctrl+N works only when delivered to DOM');
+        check(key('f', {ctrlKey: true}).defaultPrevented && document.activeElement.matches('[data-shortcut-search]'), 'search focus');
+        for (const input of document.querySelectorAll('input, textarea, select, [contenteditable]')) {
+            input.focus();
+            for (const [value, options] of [['n', {altKey: true}], ['n', {ctrlKey: true}], ['s', {ctrlKey: true}], ['f', {ctrlKey: true}], ['?', {}], ['ArrowDown', {}], ['Enter', {}]]) {
+                check(!key(value, options).defaultPrevented, 'input shortcut blocked: ' + input.tagName + ' ' + value);
+            }
+            key('Escape');
+            check(document.activeElement !== input, 'Escape blurs ' + input.tagName);
+        }
+        document.querySelector('[contenteditable]').focus();
+        check(!key('?', {}, document.querySelector('#editable-child')).defaultPrevented, 'nested editable blocked');
+        key('Escape');
+        key('ArrowDown'); check(document.activeElement === rows[0], 'first task');
+        key('ArrowRight'); check(document.activeElement === rows[1], 'next task');
+        key('ArrowDown'); check(document.activeElement === rows[1], 'last boundary');
+        key('ArrowLeft'); check(document.activeElement === rows[0], 'previous task');
+        key('ArrowUp'); check(document.activeElement === rows[0], 'first boundary');
+        key('Enter'); check(location.hash === '#detail-1', 'detail activation');
+        const nativeButton = rows[0].querySelector('button');
+        nativeButton.focus(); check(!key('Enter').defaultPrevented, 'native button preserved');
+        rows[0].focus();
+        check(!key('ArrowDown', {isComposing: true}).defaultPrevented && document.activeElement === rows[0], 'IME ignored');
+        check(!key('f', {ctrlKey: true, altKey: true}).defaultPrevented, 'AltGr ignored');
+        key('s', {ctrlKey: true}); check(saves === 0, 'HTML validation preserved');
+        form.elements.title.value = 'Task';
+        rows[0].focus();
+        key('s', {ctrlKey: true}); check(saves === 1, 'save via submit');
+        key('s', {ctrlKey: true, repeat: true}); check(saves === 1, 'repeat suppressed');
+        key('?'); await tick(); check(dialog.open && fetches === 1, 'help opens and loads');
+        check(document.querySelector('[data-shortcut-status]').textContent.includes('取得できません'), 'API failure visible');
+        check(!key('n', {ctrlKey: true}).defaultPrevented, 'modal blocks background shortcuts');
+        check(!key('n', {altKey: true}).defaultPrevented, 'modal blocks Alt+N');
+        key('Escape'); await tick(); check(!dialog.open && document.activeElement === rows[0], 'modal close restores focus');
+        window.fetch = async () => { fetches++; return {ok: true, json: async () => [{keys: '?', description: '<img src=x>', scope: '全画面'}]}; };
+        key('?'); await tick();
+        check(fetches === 2 && dialog.querySelector('li').textContent.includes('<img src=x>') && !dialog.querySelector('img'), 'retry and safe rendering');
+        key('Escape'); await tick();
+        key('?'); await tick(); check(fetches === 2, 'help list cached');
+        key('Escape'); await tick();
+        rows.forEach(row => row.remove());
+        check(!key('ArrowDown').defaultPrevented, 'empty list leaves arrows alone');
+        document.querySelector('#result').textContent = 'PASS: Alt+N creation, modifiers, keyboard navigation, save validation, input suppression, IME, modal, API retry and escaping (DOM dispatch only)';
+    } catch (error) {
+        document.querySelector('#result').textContent = 'FAIL: ' + error.stack;
+    }
+})();
+</script>
+</html>
