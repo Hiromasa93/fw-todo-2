@@ -2,11 +2,15 @@ package com.example.todoapp.api;
 
 import java.util.List;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -46,6 +50,51 @@ public class TodoApiController {
         return todoService.search(keyword, category, order, from, to).stream()
                 .map(TodoDto::from)
                 .toList();
+    }
+
+    @GetMapping(value = "/api/todos.csv", produces = "text/csv;charset=UTF-8")
+    public ResponseEntity<byte[]> csv(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "") String category,
+            @RequestParam(defaultValue = "asc") String order,
+            @RequestParam(defaultValue = "false") boolean includeCompleted,
+            @RequestParam(required = false) String trash) {
+        String sortOrder = "desc".equals(order) ? "desc" : "asc";
+        List<Todo> todos = "1".equals(trash)
+                ? todoService.searchTrash(keyword, category, sortOrder, null, null)
+                : todoService.search(keyword, category, sortOrder, null, null, includeCompleted);
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+        StringBuilder csv = new StringBuilder("\uFEFFやること,ジャンル,優先度,期限,状態\r\n");
+        for (Todo todo : todos) {
+            String priority = Integer.valueOf(1).equals(todo.getPriority()) ? "高"
+                    : Integer.valueOf(2).equals(todo.getPriority()) ? "中" : "低";
+            String dueDate = todo.getDueDate() == null ? "期限なし" : todo.getDueDate().format(dateFormat);
+            String status = Boolean.TRUE.equals(todo.getCompleted()) ? "完了" : "未完了";
+            if (Boolean.TRUE.equals(todo.getCompleted()) && todo.getCompletedAt() != null) {
+                status += " " + todo.getCompletedAt().format(dateFormat);
+            }
+            csv.append(csvCell(todo.getTitle())).append(',')
+                    .append(csvCell(todo.getCategory())).append(',')
+                    .append(csvCell(priority)).append(',')
+                    .append(csvCell(dueDate)).append(',')
+                    .append(csvCell(status)).append("\r\n");
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"todos.csv\"")
+                .body(csv.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String csvCell(String value) {
+        String text = value == null ? "" : value;
+        int first = text.codePoints()
+                .dropWhile(c -> Character.isWhitespace(c) || Character.isSpaceChar(c)
+                        || Character.isISOControl(c) || c == 0xFEFF)
+                .findFirst().orElse(-1);
+        if (first >= 0 && "=+-@＝＋－＠".indexOf(first) >= 0) {
+            text = "'" + text;
+        }
+        return "\"" + text.replace("\"", "\"\"") + "\"";
     }
 
     @GetMapping("/api/todos/{id}")

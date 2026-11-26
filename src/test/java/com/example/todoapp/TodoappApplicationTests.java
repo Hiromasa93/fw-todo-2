@@ -1,7 +1,10 @@
 package com.example.todoapp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,12 +14,15 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.todoapp.api.TodoDto;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 class TodoappApplicationTests {
 
 	@Autowired
@@ -24,6 +30,47 @@ class TodoappApplicationTests {
 
 	@Autowired
 	JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	MockMvc mockMvc;
+
+	@Test
+	@Transactional
+	void csvDownloadPreservesFiltersSortEncodingAndLiteralText() throws Exception {
+		String keyword = "csv-check-" + UUID.randomUUID();
+		for (int i = 0; i < 12; i++) {
+			Todo todo = new Todo();
+			todo.setTitle((i % 2 == 0 ? "=" : "+") + keyword + ",\"日本語\"\r\n" + i);
+			todo.setDetail("=SUM(1,2)");
+			todo.setCategory("資格");
+			todo.setPriority(1);
+			todo.setDueDate(LocalDate.of(2026, 12, i + 1));
+			todo.setCompleted(i == 0);
+			todoService.create(todo);
+		}
+		var response = mockMvc.perform(get("/api/todos.csv").param("keyword", keyword)
+				.param("category", "資格").param("order", "desc"))
+				.andExpect(status().isOk()).andReturn().getResponse();
+		assertThat(response.getHeader("Content-Disposition")).isEqualTo("attachment; filename=\"todos.csv\"");
+		assertThat(response.getContentType()).isEqualTo("text/csv;charset=UTF-8");
+		assertThat(response.getContentAsByteArray()).startsWith((byte) 0xEF, (byte) 0xBB, (byte) 0xBF);
+		String csv = new String(response.getContentAsByteArray(), StandardCharsets.UTF_8);
+		assertThat(csv).startsWith("\uFEFFやること,ジャンル,優先度,期限,状態\r\n");
+		assertThat(csv).contains("\"'+" + keyword + ",\"\"日本語\"\"\r\n11\"");
+		assertThat(csv).contains("\"'=" + keyword + ",\"\"日本語\"\"\r\n10\"");
+		assertThat(csv).contains("\"高\",\"2026/12/12\",\"未完了\"");
+		assertThat(csv).doesNotContain("2026/12/01");
+		assertThat(csv.indexOf("2026/12/12")).isLessThan(csv.indexOf("2026/12/02"));
+		assertThat(csv.split("\"未完了\"", -1)).hasSize(12);
+		String all = mockMvc.perform(get("/api/todos.csv").param("keyword", keyword)
+				.param("includeCompleted", "true").param("order", "asc"))
+				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+		assertThat(all).contains("2026/12/01", "\"完了\"");
+		assertThat(all.indexOf("2026/12/01")).isLessThan(all.indexOf("2026/12/12"));
+		String empty = mockMvc.perform(get("/api/todos.csv").param("keyword", keyword).param("category", "デザイン"))
+				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+		assertThat(empty).isEqualTo("\uFEFFやること,ジャンル,優先度,期限,状態\r\n");
+	}
 
 	@Test
 	void contextLoads() {
