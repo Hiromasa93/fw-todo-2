@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+<th:block th:fragment="head">
+    <!-- Apply the theme before any stylesheet or body content can paint. -->
+    <script>
+        (() => {
+            let preference;
+            try { preference = localStorage.getItem('theme'); } catch (_) { /* Storage may be blocked. */ }
+            const theme = preference === 'light' || preference === 'dark'
+                ? preference
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <script th:src="@{/js/theme.js}" defer></script>
+</th:block>
+</head>
+<body>
+<div th:fragment="controls" class="theme-toolbar">
+    <button id="theme-toggle" class="theme-toggle" type="button"
+            aria-label="ダークモードに切り替え" title="ダークモードに切り替え" aria-pressed="false" hidden>
+        <span class="material-icons theme-icon-dark" aria-hidden="true">dark_mode</span>
+        <span class="material-icons theme-icon-light" aria-hidden="true">light_mode</span>
+    </button>
+</div>
+</body>
+</html>

@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>やること編集</title>
+    <th:block th:replace="~{fragments/theme :: head}"></th:block>
     <link rel="stylesheet" href="/css/style.css">
     <script th:src="@{/js/tags.js}" defer></script>
 </head>
 <body>
+    <div th:replace="~{fragments/theme :: controls}"></div>
     <main class="container">
         <h1 class="page-title">やること編集</h1>
         <form method="post" th:action="@{/todos/{id}/confirm(id=${id})}" th:object="${todo}" data-shortcut-save>

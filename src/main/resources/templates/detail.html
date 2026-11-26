@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>タスクの詳細</title>
+    <th:block th:replace="~{fragments/theme :: head}"></th:block>
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
+    <div th:replace="~{fragments/theme :: controls}"></div>
     <main class="container">
         <h1 class="page-title">タスクの詳細</h1>
         <dl>

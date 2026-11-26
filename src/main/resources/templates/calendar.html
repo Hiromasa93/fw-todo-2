@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>カレンダー</title>
+    <th:block th:replace="~{fragments/theme :: head}"></th:block>
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
+    <div th:replace="~{fragments/theme :: controls}"></div>
 <main class="container calendar-page">
     <h1 class="page-title" th:text="${weekView ? #temporals.format(from, 'yyyy/MM/dd') + ' ～ ' + #temporals.format(to, 'yyyy/MM/dd') : year + '年' + month + '月'}">2026年4月</h1>
     <p>

@@ -7,12 +7,16 @@
     <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
     <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
     <meta name="_csrf_parameter" th:if="${_csrf != null}" th:content="${_csrf.parameterName}">
+    <th:block th:replace="~{fragments/theme :: head}"></th:block>
     <link rel="stylesheet" href="/css/style.css">
     <script th:src="@{/js/quick-input.js}" defer></script>
 </head>
 <body>
     <main class="container">
-        <h1 class="page-title" th:text="${trash} ? '削除したもの' : 'やること一覧'">やること一覧</h1>
+        <header class="page-header">
+            <h1 class="page-title" th:text="${trash} ? '削除したもの' : 'やること一覧'">やること一覧</h1>
+            <div th:replace="~{fragments/theme :: controls}"></div>
+        </header>
         <th:block th:if="${!trash}"><section th:replace="~{fragments/quick-input :: bar}"></section></th:block>
         <p class="flash" role="status" th:if="${message}" th:text="${message}"></p>
         <form class="search-bar" action="/todos" method="get">
