@@ -42,6 +42,44 @@ class TodoappApplicationTests {
 	MockMvc mockMvc;
 
 	@Test
+	void weeklyCalendarHasSevenSundayFirstCellsAcrossMonthAndYearBoundaries() throws Exception {
+		for (String[] dates : List.of(
+				new String[]{"2026-11-29", "2026-11-29", "2026-12-05"},
+				new String[]{"2026-12-05", "2026-11-29", "2026-12-05"},
+				new String[]{"2027-01-01", "2026-12-27", "2027-01-02"},
+				new String[]{"2028-02-29", "2028-02-27", "2028-03-04"})) {
+			var result = mockMvc.perform(get("/calendar").param("view", "week").param("date", dates[0]))
+					.andExpect(status().isOk()).andReturn();
+			var model = result.getModelAndView().getModel();
+			assertThat(model.get("from")).isEqualTo(LocalDate.parse(dates[1]));
+			assertThat(model.get("to")).isEqualTo(LocalDate.parse(dates[2]));
+			assertThat(model.get("weekView")).isEqualTo(true);
+			@SuppressWarnings("unchecked")
+			List<List<LocalDate>> weeks = (List<List<LocalDate>>) model.get("weeks");
+			assertThat(weeks).hasSize(1);
+			assertThat(weeks.get(0)).hasSize(7).doesNotContainNull();
+			assertThat(weeks.get(0).get(0).getDayOfWeek()).isEqualTo(java.time.DayOfWeek.SUNDAY);
+			String html = result.getResponse().getContentAsString(StandardCharsets.UTF_8);
+			assertThat(html).contains("data-from=\"" + dates[1] + "\"", "data-to=\"" + dates[2] + "\"", "data-view=\"week\"");
+			assertThat(html).contains("前の週", "次の週", "view=month", "date=" + dates[0]);
+		}
+	}
+
+	@Test
+	void monthlyCalendarAndSwitchingKeepSelectedDate() throws Exception {
+		var result = mockMvc.perform(get("/calendar").param("year", "2026").param("month", "11"))
+				.andExpect(status().isOk()).andReturn();
+		assertThat(result.getModelAndView().getModel().get("from")).isEqualTo(LocalDate.of(2026, 11, 1));
+		assertThat(result.getModelAndView().getModel().get("to")).isEqualTo(LocalDate.of(2026, 11, 30));
+		assertThat(result.getResponse().getContentAsString(StandardCharsets.UTF_8)).contains("data-view=\"month\"", "view=week", "前の月", "次の月");
+		var selected = mockMvc.perform(get("/calendar").param("view", "month").param("date", "2027-01-01"))
+				.andExpect(status().isOk()).andReturn();
+		assertThat(selected.getModelAndView().getModel().get("year")).isEqualTo(2027);
+		assertThat(selected.getModelAndView().getModel().get("month")).isEqualTo(1);
+		assertThat(selected.getResponse().getContentAsString(StandardCharsets.UTF_8)).contains("view=week&amp;date=2027-01-01");
+	}
+
+	@Test
 	void weatherApiFiltersDatesAndConvertsWeatherCodes() throws Exception {
 		RestClient.Builder builder = RestClient.builder();
 		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();

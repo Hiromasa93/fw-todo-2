@@ -8,12 +8,20 @@
 </head>
 <body>
 <main class="container calendar-page">
-    <h1 class="page-title" th:text="${year + '年' + month + '月'}">2026年4月</h1>
+    <h1 class="page-title" th:text="${weekView ? #temporals.format(from, 'yyyy/MM/dd') + ' ～ ' + #temporals.format(to, 'yyyy/MM/dd') : year + '年' + month + '月'}">2026年4月</h1>
+    <p>
+        <strong th:if="${!weekView}" aria-current="true">月表示</strong>
+        <a class="link" th:if="${weekView}" th:href="@{/calendar(view='month',date=${focusDate})}">月表示</a>
+        <strong th:if="${weekView}" aria-current="true">週表示</strong>
+        <a class="link" th:if="${!weekView}" th:href="@{/calendar(view='week',date=${focusDate})}">週表示</a>
+    </p>
 
-    <nav class="calendar-navigation" aria-label="月の移動">
+    <nav class="calendar-navigation" th:attr="aria-label=${weekView ? '週の移動' : '月の移動'}">
         <div class="calendar-navigation-months">
-            <a class="link" th:href="@{/calendar(year=${previousYear}, month=${previousMonth})}">前の月</a>
-            <a class="link" th:href="@{/calendar(year=${nextYear}, month=${nextMonth})}">次の月</a>
+            <a class="link" th:if="${!weekView}" th:href="@{/calendar(year=${previousYear}, month=${previousMonth})}">前の月</a>
+            <a class="link" th:if="${!weekView}" th:href="@{/calendar(year=${nextYear}, month=${nextMonth})}">次の月</a>
+            <a class="link" th:if="${weekView}" th:href="@{/calendar(view='week',date=${previousWeek})}">前の週</a>
+            <a class="link" th:if="${weekView}" th:href="@{/calendar(view='week',date=${nextWeek})}">次の週</a>
         </div>
         <div class="calendar-navigation-pages">
             <a class="link" href="/todos">表で見る</a>
@@ -21,7 +29,7 @@
         </div>
     </nav>
 
-    <table class="calendar-table" th:attr="data-from=${from}, data-to=${to}">
+    <table class="calendar-table" th:attr="data-from=${from}, data-to=${to},data-view=${weekView ? 'week' : 'month'}">
         <thead>
         <tr>
             <th scope="col">日</th>
@@ -36,7 +44,7 @@
         <tbody>
         <tr th:each="week : ${weeks}">
             <td th:each="date : ${week}" th:attr="data-date=${date != null ? #temporals.format(date, 'yyyy-MM-dd') : null}">
-                <span th:if="${date != null}" th:text="${date.dayOfMonth}">1</span>
+                <span th:if="${date != null}" th:text="${weekView ? #temporals.format(date, 'M/d') : date.dayOfMonth}">1</span>
             </td>
         </tr>
         </tbody>
@@ -49,6 +57,7 @@
         const from = calendar.dataset.from;
         const to = calendar.dataset.to;
         const params = new URLSearchParams({ from, to });
+        const weekView = calendar.dataset.view === 'week';
         const res = await fetch(`/api/todos?${params}`);
         const todos = await res.json();
 
@@ -62,7 +71,8 @@
 
         document.querySelectorAll('.calendar-table td[data-date]').forEach(cell => {
             const dayTodos = todosByDate.get(cell.dataset.date) || [];
-            dayTodos.slice(0, 3).forEach(todo => {
+            const visibleTodos = weekView ? dayTodos : dayTodos.slice(0, 3);
+            visibleTodos.forEach(todo => {
                 const title = document.createElement('a');
                 title.href = `/todos/${todo.id}/edit`;
                 title.classList.add('link');
@@ -72,7 +82,7 @@
                 }
                 cell.appendChild(title);
             });
-            if (dayTodos.length > 3) {
+            if (!weekView && dayTodos.length > 3) {
                 const more = document.createElement('div');
                 more.textContent = `ほか ${dayTodos.length - 3}件`;
                 cell.appendChild(more);
