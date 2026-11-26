@@ -13,6 +13,15 @@ public interface TodoMapper {
             @Param("order") String order, @Param("from") LocalDate from, @Param("to") LocalDate to,
             @Param("includeCompleted") boolean includeCompleted, @Param("trash") boolean trash);
 
+    long count(@Param("keyword") String keyword, @Param("category") String category,
+            @Param("from") LocalDate from, @Param("to") LocalDate to,
+            @Param("includeCompleted") boolean includeCompleted, @Param("trash") boolean trash);
+
+    List<Todo> searchPage(@Param("keyword") String keyword, @Param("category") String category,
+            @Param("order") String order, @Param("from") LocalDate from, @Param("to") LocalDate to,
+            @Param("includeCompleted") boolean includeCompleted, @Param("trash") boolean trash,
+            @Param("limit") int limit, @Param("offset") long offset);
+
     Todo findById(Long id);
 
     int insert(Todo todo);

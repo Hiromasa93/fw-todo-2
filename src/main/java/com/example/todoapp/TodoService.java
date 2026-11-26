@@ -29,6 +29,21 @@ public class TodoService {
         return todoMapper.search(keyword, category, order, from, to, true, true);
     }
 
+    public TodoPage searchPage(String keyword, String category, String order,
+            boolean includeCompleted, boolean trash, int page) {
+        int pageSize = 10;
+        boolean showCompleted = trash || includeCompleted;
+        long totalCount = todoMapper.count(keyword, category, null, null, showCompleted, trash);
+        int totalPages = (int) Math.max(1, (totalCount + pageSize - 1) / pageSize);
+        int currentPage = Math.max(1, Math.min(page, totalPages));
+        List<Todo> todos = todoMapper.searchPage(keyword, category, order, null, null,
+                showCompleted, trash, pageSize, (long) (currentPage - 1) * pageSize);
+        return new TodoPage(todos, currentPage, totalPages);
+    }
+
+    public record TodoPage(List<Todo> todos, int currentPage, int totalPages) {
+    }
+
     public Todo findById(Long id) {
         return todoMapper.findById(id);
     }

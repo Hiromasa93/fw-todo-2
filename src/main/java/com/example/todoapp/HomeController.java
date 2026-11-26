@@ -10,8 +10,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.List;
-
 import jakarta.validation.Valid;
 
 @Controller
@@ -34,6 +32,7 @@ public class HomeController {
             @RequestParam(defaultValue = "") String category,
             @RequestParam(defaultValue = "asc") String order,
             @RequestParam(defaultValue = "false") boolean includeCompleted,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(required = false) String trash, Model model) {
         boolean trashView = "1".equals(trash);
         if (!"desc".equals(order)) {
@@ -41,10 +40,11 @@ public class HomeController {
         }
         // The page does not expose date filters, so leave the API's optional
         // date range unset for the HTML list.
-        List<Todo> todos = trashView
-                ? todoService.searchTrash(keyword, category, order, null, null)
-                : todoService.search(keyword, category, order, null, null, includeCompleted);
-        model.addAttribute("todos", todos);
+        TodoService.TodoPage result = todoService.searchPage(keyword, category, order,
+                includeCompleted, trashView, page);
+        model.addAttribute("todos", result.todos());
+        model.addAttribute("currentPage", result.currentPage());
+        model.addAttribute("totalPages", result.totalPages());
         model.addAttribute("keyword", keyword);
         model.addAttribute("category", category);
         model.addAttribute("order", order);
@@ -59,12 +59,14 @@ public class HomeController {
             @RequestParam(defaultValue = "") String category,
             @RequestParam(defaultValue = "asc") String order,
             @RequestParam(defaultValue = "false") boolean includeCompleted,
+            @RequestParam(defaultValue = "1") int page,
             RedirectAttributes redirectAttributes) {
         todoService.togglePinned(id);
         redirectAttributes.addAttribute("keyword", keyword);
         redirectAttributes.addAttribute("category", category);
         redirectAttributes.addAttribute("order", "desc".equals(order) ? "desc" : "asc");
         redirectAttributes.addAttribute("includeCompleted", includeCompleted);
+        redirectAttributes.addAttribute("page", page);
         return "redirect:/todos";
     }
 

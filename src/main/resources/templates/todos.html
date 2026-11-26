@@ -12,6 +12,7 @@
         <p class="flash" th:if="${message}" th:text="${message}"></p>
         <form class="search-bar" action="/todos" method="get">
             <input type="hidden" name="order" th:value="${order}">
+            <input type="hidden" name="trash" th:if="${trash}" value="1">
             <input class="form-input" type="text" name="keyword" placeholder="やることの名前" th:value="${keyword}">
             <select class="form-input" name="category">
                 <option value="" th:selected="${category == '' or category == 'すべて'}">すべて</option>
@@ -23,8 +24,8 @@
             </select>
             <label><input type="checkbox" name="includeCompleted" value="true" th:checked="${includeCompleted}"> 完了したものも表示する</label>
             <button class="btn" type="submit">絞り込む</button>
-            <a class="link" th:href="@{/todos(keyword=${keyword},category=${category},order='asc',includeCompleted=${includeCompleted})}">期限が近い順</a>
-            <a class="link" th:href="@{/todos(keyword=${keyword},category=${category},order='desc',includeCompleted=${includeCompleted})}">期限が遠い順</a>
+            <a class="link" th:href="@{/todos(keyword=${keyword},category=${category},order='asc',includeCompleted=${includeCompleted},trash=${trash ? '1' : null})}">期限が近い順</a>
+            <a class="link" th:href="@{/todos(keyword=${keyword},category=${category},order='desc',includeCompleted=${includeCompleted},trash=${trash ? '1' : null})}">期限が遠い順</a>
         </form>
         <p><a class="btn" th:if="${!trash}" href="/todos/new">新規登録</a> <a class="link" th:if="${!trash}" href="/calendar">カレンダーで見る</a> <a class="link" th:if="${!trash}" href="/todos?trash=1">削除したものを見る</a> <a class="link" th:if="${trash}" href="/todos">一覧に戻る</a></p>
         <p th:if="${#lists.isEmpty(todos)}" th:text="${trash} ? '削除したものはありません' : 'まだ1件も登録されていません'">まだ1件も登録されていません</p>
@@ -49,6 +50,7 @@
                                 <input type="hidden" name="category" th:value="${category}">
                                 <input type="hidden" name="order" th:value="${order}">
                                 <input type="hidden" name="includeCompleted" th:value="${includeCompleted}">
+                                <input type="hidden" name="page" th:value="${currentPage}">
                                 <button class="pin-button" type="submit"
                                         th:classappend="${todo.pinned} ? 'is-pinned'"
                                         th:attr="aria-label=${todo.pinned} ? '印を外す' : '印を付ける',aria-pressed=${todo.pinned}"
@@ -72,6 +74,14 @@
                 </tr>
             </tbody>
         </table>
+        <nav aria-label="一覧のページ" th:unless="${#lists.isEmpty(todos)}">
+            <span th:each="number : ${#numbers.sequence(1, totalPages)}">
+                <strong th:if="${number == currentPage}" aria-current="page" th:text="${number}">1</strong>
+                <a class="link" th:unless="${number == currentPage}"
+                   th:href="@{/todos(page=${number},keyword=${keyword},category=${category},order=${order},includeCompleted=${includeCompleted},trash=${trash ? '1' : null})}"
+                   th:text="${number}">2</a>
+            </span>
+        </nav>
     </main>
     <script>
         const today = new Date();
