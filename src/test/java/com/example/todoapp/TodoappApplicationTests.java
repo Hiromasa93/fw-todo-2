@@ -10,16 +10,23 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.net.SocketTimeoutException;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.client.RestClient;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.todoapp.api.TodoDto;
+import com.example.todoapp.api.WeatherClient;
+import com.example.todoapp.api.WeatherApiController;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -33,6 +40,60 @@ class TodoappApplicationTests {
 
 	@Autowired
 	MockMvc mockMvc;
+
+	@Test
+	void weatherApiFiltersDatesAndConvertsWeatherCodes() throws Exception {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo(
+				"https://api.open-meteo.com/v1/forecast?latitude=35.6812&longitude=139.7671"
+				+ "&daily=weather_code&timezone=Asia%2FTokyo&forecast_days=16"))
+				.andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess(
+						"{\"daily\":{\"time\":[\"2026-11-26\",\"2026-11-27\"],\"weather_code\":[0,61]}}", MediaType.APPLICATION_JSON));
+		MockMvc weatherMvc = MockMvcBuilders.standaloneSetup(new WeatherApiController(new WeatherClient(builder.build()))).build();
+		var response = weatherMvc.perform(get("/api/weather").param("from", "2026-11-27").param("to", "2026-11-27"))
+				.andExpect(status().isOk()).andReturn().getResponse();
+		assertThat(response.getContentAsString(StandardCharsets.UTF_8)).isEqualTo("{\"2026-11-27\":\"雨\"}");
+		assertThat(response.getHeader("X-Weather-Unavailable")).isNull();
+		server.verify();
+	}
+
+	@Test
+	void weatherTimeoutReturnsEmptyMapAndCalendarStillRenders() throws Exception {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.anything())
+				.andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withException(new SocketTimeoutException()));
+		MockMvc weatherMvc = MockMvcBuilders.standaloneSetup(new WeatherApiController(new WeatherClient(builder.build()))).build();
+		var response = weatherMvc.perform(get("/api/weather")).andExpect(status().isOk()).andReturn().getResponse();
+		assertThat(response.getContentAsString()).isEqualTo("{}");
+		assertThat(response.getHeader("X-Weather-Unavailable")).isEqualTo("true");
+		String calendar = mockMvc.perform(get("/calendar")).andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+		assertThat(calendar).contains("calendar-table", "showWeatherInCalendar();", "showTodosInCalendar();");
+		server.verify();
+	}
+
+	@Test
+	void weatherInvalidResponseAndServerErrorAreHandled() {
+		for (String body : List.of("invalid-json", "{}", "{\"daily\":{\"time\":[\"bad-date\"],\"weather_code\":[0]}}",
+				"{\"daily\":{\"time\":[\"2026-11-26\"],\"weather_code\":[]}}")) {
+			RestClient.Builder builder = RestClient.builder();
+			MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+			server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.anything())
+					.andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess(body, MediaType.APPLICATION_JSON));
+			var result = new WeatherClient(builder.build()).getWeather();
+			assertThat(result.unavailable()).isTrue();
+			assertThat(result.weather()).isEmpty();
+			server.verify();
+		}
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.anything())
+				.andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withServerError());
+		assertThat(new WeatherClient(builder.build()).getWeather().unavailable()).isTrue();
+		server.verify();
+	}
 
 	@Test
 	@Transactional

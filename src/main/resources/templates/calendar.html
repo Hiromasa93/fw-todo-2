@@ -41,6 +41,7 @@
         </tr>
         </tbody>
     </table>
+    <p>天気予報：東京（都心）、今日から16日分のうち取得できた日のみ表示。提供：<a class="link" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a></p>
 </main>
 <script>
     async function showTodosInCalendar() {
@@ -98,7 +99,27 @@
         });
     }
 
+    async function showWeatherInCalendar() {
+        const calendar = document.querySelector('.calendar-table');
+        const params = new URLSearchParams({ from: calendar.dataset.from, to: calendar.dataset.to });
+        try {
+            const response = await fetch(`/api/weather?${params}`, { signal: AbortSignal.timeout(10000) });
+            if (!response.ok || response.headers.has('X-Weather-Unavailable')) return;
+            const weather = await response.json();
+            document.querySelectorAll('.calendar-table td[data-date]').forEach(cell => {
+                const description = weather[cell.dataset.date];
+                if (typeof description !== 'string' || !description) return;
+                const label = document.createElement('div');
+                label.textContent = `天気：${description}`;
+                cell.appendChild(label);
+            });
+        } catch (error) {
+            // Weather is optional; keep the calendar and todos visible when unavailable.
+        }
+    }
+
     showTodosInCalendar();
+    showWeatherInCalendar();
 </script>
 </body>
 </html>
