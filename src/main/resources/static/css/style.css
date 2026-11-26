@@ -284,3 +284,25 @@ body {
 #shortcut-help::backdrop { background: rgb(0 0 0 / 45%); }
 #shortcut-help li { margin: .75rem 0; }
 #shortcut-help kbd { font-weight: bold; }
+.quick-input-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #8b9bb2;
+    border-radius: 8px;
+    background: #1e293b;
+}
+.quick-input-controls { display: flex; gap: 8px; margin-top: 6px; }
+.quick-input-controls input { min-width: 0; flex: 1; }
+.quick-input-controls button { flex-shrink: 0; }
+#quick-status { margin: 4px 0 0; font-size: .85rem; color: #cbd5e1; }
+.todo-row-enter { animation: todo-slide-in .25s ease-out; }
+@keyframes todo-slide-in {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .todo-row-enter { animation: none; }
+}

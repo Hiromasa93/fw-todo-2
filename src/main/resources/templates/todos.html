@@ -4,17 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>やること一覧</title>
+    <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
+    <meta name="_csrf_parameter" th:if="${_csrf != null}" th:content="${_csrf.parameterName}">
     <link rel="stylesheet" href="/css/style.css">
+    <script th:src="@{/js/quick-input.js}" defer></script>
 </head>
 <body>
     <main class="container">
         <h1 class="page-title" th:text="${trash} ? '削除したもの' : 'やること一覧'">やること一覧</h1>
+        <th:block th:if="${!trash}"><section th:replace="~{fragments/quick-input :: bar}"></section></th:block>
         <p class="flash" role="status" th:if="${message}" th:text="${message}"></p>
         <form class="search-bar" action="/todos" method="get">
             <input type="hidden" name="order" th:value="${order}">
             <input type="hidden" name="trash" th:if="${trash}" value="1">
             <input class="form-input" type="text" name="keyword" data-shortcut-search aria-label="タスク検索" placeholder="やることの名前" th:value="${keyword}">
             <select class="form-input" name="category">
+                <option value="未分類" th:selected="${category == '未分類'}">未分類</option>
                 <option value="" th:selected="${category == '' or category == 'すべて'}">すべて</option>
                 <option value="デザイン" th:selected="${category == 'デザイン'}">デザイン</option>
                 <option value="マーケティング" th:selected="${category == 'マーケティング'}">マーケティング</option>
@@ -29,8 +35,8 @@
         </form>
         <p><a class="btn" th:href="@{/api/todos.csv(keyword=${keyword},category=${category},order=${order},includeCompleted=${includeCompleted},trash=${trash ? '1' : null})}">CSVを書き出す</a></p>
         <p><a class="btn" th:if="${!trash}" href="/todos/new">新規登録</a> <a class="link" th:if="${!trash}" href="/calendar">カレンダーで見る</a> <a class="link" th:if="${!trash}" href="/todos?trash=1">削除したものを見る</a> <a class="link" th:if="${trash}" href="/todos">一覧に戻る</a></p>
-        <p th:if="${#lists.isEmpty(todos)}" th:text="${trash} ? '削除したものはありません' : 'まだ1件も登録されていません'">まだ1件も登録されていません</p>
-        <form id="bulk-delete-form" th:if="${!trash and !#lists.isEmpty(todos)}" th:action="@{/todos/bulk-delete}" method="post">
+        <p data-empty-todos th:if="${#lists.isEmpty(todos)}" th:text="${trash} ? '削除したものはありません' : 'まだ1件も登録されていません'">まだ1件も登録されていません</p>
+        <form id="bulk-delete-form" th:if="${!trash}" th:hidden="${#lists.isEmpty(todos)}" th:action="@{/todos/bulk-delete}" method="post">
             <input type="hidden" name="keyword" th:value="${keyword}">
             <input type="hidden" name="category" th:value="${category}">
             <input type="hidden" name="order" th:value="${order}">
@@ -46,7 +52,7 @@
             </div>
             <p>全選択は表示中のページが対象です。</p>
         </form>
-        <table class="todo-table" th:unless="${#lists.isEmpty(todos)}">
+        <table class="todo-table" th:hidden="${#lists.isEmpty(todos)}">
             <thead>
                 <tr>
                     <th th:if="${!trash}"><label><input id="select-all" type="checkbox"> 全選択</label></th>
@@ -113,24 +119,27 @@
         const bulkDeleteForm = document.getElementById('bulk-delete-form');
         if (bulkDeleteForm) {
             const selectAll = document.getElementById('select-all');
-            const checkboxes = Array.from(document.querySelectorAll('.todo-select'));
+            const checkboxes = () => Array.from(document.querySelectorAll('.todo-select'));
             const actionButtons = bulkDeleteForm.querySelectorAll('.bulk-action');
             const selectionCount = document.getElementById('selection-count');
             const updateSelection = () => {
-                const count = checkboxes.filter(checkbox => checkbox.checked).length;
-                selectAll.checked = count === checkboxes.length && count > 0;
-                selectAll.indeterminate = count > 0 && count < checkboxes.length;
+                const count = checkboxes().filter(checkbox => checkbox.checked).length;
+                selectAll.checked = count === checkboxes().length && count > 0;
+                selectAll.indeterminate = count > 0 && count < checkboxes().length;
                 actionButtons.forEach(button => { button.disabled = count === 0; });
                 selectionCount.textContent = `${count}件選択中`;
             };
             selectAll.addEventListener('change', () => {
-                checkboxes.forEach(checkbox => { checkbox.checked = selectAll.checked; });
+                checkboxes().forEach(checkbox => { checkbox.checked = selectAll.checked; });
                 updateSelection();
             });
-            checkboxes.forEach(checkbox => checkbox.addEventListener('change', updateSelection));
+            document.addEventListener('change', event => {
+                if (event.target.matches('.todo-select')) updateSelection();
+            });
+            document.addEventListener('todo:added', updateSelection);
             window.addEventListener('pageshow', updateSelection);
             bulkDeleteForm.addEventListener('submit', event => {
-                const count = checkboxes.filter(checkbox => checkbox.checked).length;
+                const count = checkboxes().filter(checkbox => checkbox.checked).length;
                 const deleting = !event.submitter || event.submitter.id === 'bulk-delete-button';
                 if (count === 0 || (deleting && !window.confirm(`選択した${count}件を削除しますか？`))) {
                     event.preventDefault();

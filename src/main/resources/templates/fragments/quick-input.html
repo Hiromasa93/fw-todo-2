@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:fragment="bar" class="quick-input-bar" aria-label="タスクのクイック入力"
+         data-quick-input th:data-api-url="@{/api/todo}" th:data-todo-base="@{/todos}">
+    <form novalidate>
+        <label for="quick-title">やることを追加</label>
+        <div class="quick-input-controls">
+            <input class="form-input" type="text" id="quick-title" name="title" maxlength="255"
+                   autocomplete="off" placeholder="タイトルを入力してEnter" aria-describedby="quick-error quick-status">
+            <button class="btn" type="submit">追加</button>
+        </div>
+        <p class="error" id="quick-error" role="alert" hidden></p>
+        <p id="quick-status" role="status" aria-live="polite">未分類・優先度「中」・期限なしで追加します。</p>
+    </form>
+    <template data-quick-row>
+        <tr tabindex="0" data-shortcut-task data-completed="false" class="todo-row-enter">
+            <td><input class="todo-select" type="checkbox" name="ids" form="bulk-delete-form"></td>
+            <td><div class="todo-title">
+                <form class="pin-form" method="post" data-quick-pin>
+                    <button class="pin-button" type="submit" aria-label="印を付ける" aria-pressed="false" title="印を付ける"><span aria-hidden="true">☆</span></button>
+                </form>
+                <a class="link" data-shortcut-detail></a>
+            </div></td>
+            <td data-quick-category></td><td>中</td><td>期限なし</td><td>未完了</td>
+            <td><a class="link" data-quick-edit>編集</a> <a class="link" data-quick-delete>削除</a></td>
+        </tr>
+    </template>
+</section>
+</body>
+</html>

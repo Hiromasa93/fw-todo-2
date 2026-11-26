@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja"><meta charset="UTF-8"><title>Quick input DOM tests</title>
+<meta name="_csrf" content="test-token"><meta name="_csrf_header" content="X-CSRF-TOKEN"><meta name="_csrf_parameter" content="_csrf">
+<div id="fixture"></div><pre id="result">RUNNING</pre>
+<script>
+(async () => {
+    const check = (condition, message) => { if (!condition) throw new Error(message); };
+    const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+    const loadScript = src => new Promise((resolve, reject) => {
+        const script = document.createElement('script'); script.src = src; script.onload = resolve; script.onerror = reject;
+        document.body.append(script);
+    });
+    try {
+        // Use the production templates and bulk-selection code rather than a copy.
+        const parser = new DOMParser();
+        const barHtml = await (await fetch('../../main/resources/templates/fragments/quick-input.html')).text();
+        const listHtml = await (await fetch('../../main/resources/templates/todos.html')).text();
+        const barDoc = parser.parseFromString(barHtml, 'text/html');
+        const listDoc = parser.parseFromString(listHtml, 'text/html');
+        const bar = document.importNode(barDoc.querySelector('[data-quick-input]'), true);
+        bar.dataset.apiUrl = '/api/todo'; bar.dataset.todoBase = '/todos';
+        const fixture = document.querySelector('#fixture'); fixture.append(bar);
+        const bulk = document.importNode(listDoc.querySelector('#bulk-delete-form'), true);
+        bulk.hidden = true; fixture.append(bulk);
+        bulk.querySelector('[name="keyword"]').value = 'current-filter';
+        const table = document.importNode(listDoc.querySelector('.todo-table'), true);
+        table.querySelector('tbody').replaceChildren(); table.hidden = true; fixture.append(table);
+        const empty = document.createElement('p'); empty.dataset.emptyTodos = ''; empty.textContent = 'Empty'; fixture.append(empty);
+        const inline = document.createElement('script'); inline.textContent = listDoc.querySelector('script:not([src]):not([th\\:src])').textContent;
+        document.body.append(inline);
+        const calls = [];
+        let respond = async () => ({ok: true, json: async () => ({id: 31, title: '<img src=x onerror=alert(1)>', category: '未分類'})});
+        window.fetch = (url, options) => { calls.push({url, options}); return respond(); };
+        await loadScript('../../main/resources/static/js/quick-input.js');
+        const form = bar.querySelector('form');
+        const input = form.querySelector('input');
+        const button = form.querySelector('button');
+        const error = form.querySelector('[role="alert"]');
+        const type = text => { input.value = text; input.dispatchEvent(new Event('input')); };
+        const submit = () => form.requestSubmit(button);
+        submit(); check(!error.hidden && calls.length === 0, 'empty title inline validation');
+        type('Task'); check(error.hidden && !input.hasAttribute('aria-invalid'), 'input clears error');
+        input.dispatchEvent(new CompositionEvent('compositionstart')); submit(); check(calls.length === 0, 'IME enter ignored');
+        input.dispatchEvent(new CompositionEvent('compositionend'));
+        type('  Task  '); submit(); check(button.disabled, 'pending disables submit'); await tick();
+        check(calls[0].url === '/api/todo' && calls[0].options.method === 'POST', 'POST endpoint');
+        check(JSON.parse(calls[0].options.body).title === 'Task' && calls[0].options.headers['X-CSRF-TOKEN'] === 'test-token', 'JSON and CSRF header');
+        check(calls[0].options.credentials === 'same-origin', 'session credentials');
+        let row = table.querySelector('tbody tr');
+        check(row && row.classList.contains('todo-row-enter') && row.tabIndex === 0, 'row inserted with animation and focus');
+        check(row.textContent.includes('<img src=x') && !row.querySelector('img'), 'safe title rendering');
+        check(!table.hidden && !bulk.hidden && empty.hidden && input.value === '' && !button.disabled, 'empty list becomes visible');
+        check(row.querySelector('[data-shortcut-detail]').getAttribute('href') === '/todos/31', 'detail link');
+        check(row.querySelector('[data-quick-edit]').getAttribute('href') === '/todos/31/edit', 'edit link');
+        check(row.querySelector('[data-quick-pin] [name="keyword"]').value === 'current-filter' && row.querySelector('[name="_csrf"]').value === 'test-token', 'pin context and CSRF');
+        const checkbox = row.querySelector('.todo-select'); checkbox.checked = true; checkbox.dispatchEvent(new Event('change', {bubbles: true}));
+        check(document.querySelector('#selection-count').textContent === '1件選択中' && !document.querySelector('#bulk-delete-button').disabled, 'new row supports bulk selection');
+        respond = async () => ({ok: false, status: 400, json: async () => ({errors: [{field: 'title', message: 'server validation'}]})});
+        type('Bad'); button.click(); await tick(); check(error.textContent === 'server validation' && input.value === 'Bad', 'server validation inline');
+        type('Fix'); check(error.hidden, 'server error cleared on input');
+        respond = async () => ({ok: false, status: 403}); submit(); await tick(); check(error.textContent.includes('有効期限'), 'CSRF expiry');
+        respond = async () => { throw new TypeError('offline'); }; type('Network'); submit(); await tick();
+        check(error.textContent.includes('通信に失敗') && !button.disabled && input.value === 'Network', 'network recovery');
+        let finish;
+        respond = () => new Promise(resolve => { finish = resolve; });
+        type('Second'); const count = calls.length; submit(); submit(); check(calls.length === count + 1, 'duplicate submits blocked');
+        type('Next draft');
+        finish({ok: true, json: async () => ({id: 32, title: 'Second', category: '未分類'})}); await tick();
+        check(input.value === 'Next draft' && table.querySelector('tbody tr [data-shortcut-detail]').textContent === 'Second', 'new draft preserved and prepend');
+        check(document.querySelector('#selection-count').textContent === '1件選択中' && document.querySelector('#select-all').indeterminate, 'bulk count includes added rows');
+        document.querySelector('#result').textContent = 'PASS: title validation, submit, IME, JSON/CSRF, DOM insertion, escaping, animation, bulk selection, server errors, duplicates, draft preservation';
+    } catch (error) { document.querySelector('#result').textContent = 'FAIL: ' + error.stack; }
+})();
+</script></html>
