@@ -25,6 +25,7 @@
 | `completed` | `BOOLEAN` | はい | `FALSE`（未完了） | 完了状態。`TRUE`＝完了、`FALSE`＝未完了 |
 | `created_at` | `DATETIME` | はい | MySQLが登録時に設定 | 登録した日時。入力画面からは入力しない |
 | `updated_at` | `DATETIME` | はい | MySQLが登録時と更新時に設定 | 最後に直した日時。入力画面からは入力しない |
+| `deleted_at` | `DATETIME` | いいえ | なし | 削除扱いにした日時。`NULL`（空）の行は通常の項目 |
 
 ### 3.2 キーと制約
 
@@ -50,6 +51,7 @@ CREATE TABLE todos (
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
     PRIMARY KEY (id)
 );
 ```
@@ -81,7 +83,12 @@ CREATE TABLE todos (
 
 ## 5. 保存・検索の補足
 
-- 登録・編集・削除は `todos` の行を追加・更新・削除して行います。削除した行を復元する仕組みはありません。
+- 削除は `deleted_at` に日時を入れて表し、復元は `NULL`（空）に戻します。通常の一覧・API・MCP道具では `deleted_at IS NULL` の行だけを扱います。
+- 既存のデータベースには次のSQLを一度実行して列を追加します。
+
+```sql
+ALTER TABLE todos ADD COLUMN deleted_at DATETIME NULL;
+```
 - 名前検索は `title` の一部一致、ジャンル検索は `category` の完全一致で行います。両条件がある場合は両方に合う行に絞ります。
 - 期限順の並び替えは `due_date` を使います。初回表示は期限が近い順です。
 - 操作記録（登録／編集／削除と対象IDを残す記録）の詳細な保存方法は、要件で `todos` 以外の保存先が定められていないため、このテーブル設計には含めません。操作記録にタイトルやメモは含めません。

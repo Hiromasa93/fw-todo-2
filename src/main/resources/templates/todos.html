@@ -8,7 +8,7 @@
 </head>
 <body>
     <main class="container">
-        <h1 class="page-title">やること一覧</h1>
+        <h1 class="page-title" th:text="${trash} ? '削除したもの' : 'やること一覧'">やること一覧</h1>
         <p class="flash" th:if="${message}" th:text="${message}"></p>
         <form class="search-bar" action="/todos" method="get">
             <input type="hidden" name="order" th:value="${order}">
@@ -26,8 +26,8 @@
             <a class="link" th:href="@{/todos(keyword=${keyword},category=${category},order='asc',includeCompleted=${includeCompleted})}">期限が近い順</a>
             <a class="link" th:href="@{/todos(keyword=${keyword},category=${category},order='desc',includeCompleted=${includeCompleted})}">期限が遠い順</a>
         </form>
-        <p><a class="btn" href="/todos/new">新規登録</a> <a class="link" href="/calendar">カレンダーで見る</a></p>
-        <p th:if="${#lists.isEmpty(todos)}">まだ1件も登録されていません</p>
+        <p><a class="btn" th:if="${!trash}" href="/todos/new">新規登録</a> <a class="link" th:if="${!trash}" href="/calendar">カレンダーで見る</a> <a class="link" th:if="${!trash}" href="/todos?trash=1">削除したものを見る</a> <a class="link" th:if="${trash}" href="/todos">一覧に戻る</a></p>
+        <p th:if="${#lists.isEmpty(todos)}" th:text="${trash} ? '削除したものはありません' : 'まだ1件も登録されていません'">まだ1件も登録されていません</p>
         <table class="todo-table" th:unless="${#lists.isEmpty(todos)}">
             <thead>
                 <tr>
@@ -46,7 +46,8 @@
                     <td th:text="${todo.priority == 1 ? '高' : (todo.priority == 2 ? '中' : '低')}">優先度</td>
                     <td th:text="${todo.dueDate != null ? #temporals.format(todo.dueDate, 'yyyy/MM/dd') : '期限なし'}">期限</td>
                     <td th:text="${todo.completed ? '完了' : '未完了'}">状態</td>
-                    <td><a class="link" th:href="@{/todos/{id}/edit(id=${todo.id})}">編集</a> <a class="link" th:href="@{/todos/{id}/delete(id=${todo.id})}">削除</a></td>
+                    <td th:if="${!trash}"><a class="link" th:href="@{/todos/{id}/edit(id=${todo.id})}">編集</a> <a class="link" th:href="@{/todos/{id}/delete(id=${todo.id})}">削除</a></td>
+                    <td th:if="${trash}"><form th:action="@{/todos/{id}/restore(id=${todo.id})}" method="post"><button class="btn sub" type="submit">戻す</button></form></td>
                 </tr>
             </tbody>
         </table>

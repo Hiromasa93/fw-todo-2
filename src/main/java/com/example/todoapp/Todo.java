@@ -35,4 +35,5 @@ public class Todo {
     private Boolean completed;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime deletedAt;
 }

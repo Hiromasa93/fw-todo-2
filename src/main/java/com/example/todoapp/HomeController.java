@@ -33,18 +33,23 @@ public class HomeController {
     public String todos(@RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "") String category,
             @RequestParam(defaultValue = "asc") String order,
-            @RequestParam(defaultValue = "false") boolean includeCompleted, Model model) {
+            @RequestParam(defaultValue = "false") boolean includeCompleted,
+            @RequestParam(required = false) String trash, Model model) {
+        boolean trashView = "1".equals(trash);
         if (!"desc".equals(order)) {
             order = "asc";
         }
         // The page does not expose date filters, so leave the API's optional
         // date range unset for the HTML list.
-        List<Todo> todos = todoService.search(keyword, category, order, null, null, includeCompleted);
+        List<Todo> todos = trashView
+                ? todoService.searchTrash(keyword, category, order, null, null)
+                : todoService.search(keyword, category, order, null, null, includeCompleted);
         model.addAttribute("todos", todos);
         model.addAttribute("keyword", keyword);
         model.addAttribute("category", category);
         model.addAttribute("order", order);
         model.addAttribute("includeCompleted", includeCompleted);
+        model.addAttribute("trash", trashView);
         return "todos";
     }
 
@@ -64,6 +69,13 @@ public class HomeController {
         todoService.delete(id);
         redirectAttributes.addFlashAttribute("message", "削除しました");
         return "redirect:/todos";
+    }
+
+    @PostMapping("/todos/{id}/restore")
+    public String restore(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        todoService.restore(id);
+        redirectAttributes.addFlashAttribute("message", "戻しました");
+        return "redirect:/todos?trash=1";
     }
 
     @GetMapping("/todos/new")

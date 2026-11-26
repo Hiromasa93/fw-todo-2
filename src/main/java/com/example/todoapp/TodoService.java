@@ -17,12 +17,16 @@ public class TodoService {
     }
 
     public List<Todo> search(String keyword, String category, String order, LocalDate from, LocalDate to) {
-        return todoMapper.search(keyword, category, order, from, to, true);
+        return todoMapper.search(keyword, category, order, from, to, true, false);
     }
 
     public List<Todo> search(String keyword, String category, String order, LocalDate from, LocalDate to,
             boolean includeCompleted) {
-        return todoMapper.search(keyword, category, order, from, to, includeCompleted);
+        return todoMapper.search(keyword, category, order, from, to, includeCompleted, false);
+    }
+
+    public List<Todo> searchTrash(String keyword, String category, String order, LocalDate from, LocalDate to) {
+        return todoMapper.search(keyword, category, order, from, to, true, true);
     }
 
     public Todo findById(Long id) {
@@ -42,5 +46,10 @@ public class TodoService {
     public int delete(Long id) {
         log.info("Deleting todo id={}", id);
         return todoMapper.deleteById(id);
+    }
+
+    public int restore(Long id) {
+        log.info("Restoring todo id={}", id);
+        return todoMapper.restoreById(id);
     }
 }
