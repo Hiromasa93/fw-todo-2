@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja"><meta charset="UTF-8"><title>Smart date DOM tests</title>
+<form>
+<input name="dueDate" type="date" value="2026-12-01">
+<div data-smart-date data-parse-url="/api/date/parse"><input><p role="status"></p></div>
+<button>Confirm</button>
+</form>
+<pre id="result">RUNNING</pre>
+<script>
+const calls = [];
+let respond = async () => ({ok: true, json: async () => ({success: true, date: '2026-12-04'})});
+window.fetch = (url, options) => { calls.push({url, options}); return respond(url, options); };
+</script>
+<script src="../../main/resources/static/js/smart-date.js"></script>
+<script>
+(async () => {
+    const input = document.querySelector('[data-smart-date] input');
+    const date = document.querySelector('[name="dueDate"]');
+    const preview = document.querySelector('[role="status"]');
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const type = value => { input.value = value; input.dispatchEvent(new Event('input')); };
+    const check = (condition, message) => { if (!condition) throw new Error(message); };
+    try {
+        type('来'); await wait(200); check(calls.length === 0, '300ms debounce');
+        type('来週金曜'); await wait(200); check(calls.length === 0, 'debounce resets');
+        check(!input.validity.valid, 'pending parse blocks submit');
+        await wait(120);
+        check(calls.length === 1 && calls[0].url.searchParams.get('input') === '来週金曜', 'encoded query');
+        check(date.value === '2026-12-04' && preview.textContent.includes('反映済み') && input.validity.valid, 'date reflected');
+        respond = async () => ({ok: false, status: 400, json: async () => ({success: false, message: '解釈できません'})});
+        type('変な日'); await wait(320);
+        check(!input.validity.valid && input.getAttribute('aria-invalid') === 'true' && date.value === '2026-12-04', 'invalid input preserves date and blocks submit');
+        type(''); check(input.validity.valid && !preview.textContent, 'empty input resets errors');
+        let stale;
+        respond = () => new Promise(resolve => { stale = resolve; });
+        type('明日'); await wait(320);
+        const oldRequest = calls.at(-1);
+        respond = async () => ({ok: true, json: async () => ({success: true, date: '2026-12-25'})});
+        type('12月25日'); await wait(320);
+        stale({ok: true, json: async () => ({success: true, date: '2026-11-27'})}); await wait(10);
+        check(oldRequest.options.signal.aborted && date.value === '2026-12-25', 'stale response ignored');
+        respond = () => new Promise(resolve => { stale = resolve; });
+        type('明日'); await wait(320);
+        date.value = '2027-01-01'; date.dispatchEvent(new Event('input'));
+        stale({ok: true, json: async () => ({success: true, date: '2026-11-27'})}); await wait(10);
+        check(date.value === '2027-01-01' && input.value === '' && input.validity.valid, 'manual date wins');
+        respond = async () => { throw new TypeError('network failed'); };
+        type('明日'); await wait(320);
+        check(!input.validity.valid && preview.textContent.includes('取得できません'), 'network failure visible');
+        type('');
+        const count = calls.length;
+        input.dispatchEvent(new CompositionEvent('compositionstart'));
+        type('明日'); await wait(320); check(calls.length === count, 'IME waits');
+        respond = async () => ({ok: true, json: async () => ({success: true, date: '2026-11-27'})});
+        input.dispatchEvent(new CompositionEvent('compositionend')); await wait(320);
+        check(calls.length === count + 1 && date.value === '2026-11-27', 'IME completion parses');
+        document.querySelector('#result').textContent = 'PASS: debounce, preview, invalid input, stale requests, manual date, network error, IME';
+    } catch (error) { document.querySelector('#result').textContent = 'FAIL: ' + error.stack; }
+})();
+</script></html>

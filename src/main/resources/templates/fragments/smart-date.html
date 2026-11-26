@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="input" class="form-row" data-smart-date th:data-parse-url="@{/api/date/parse}">
+    <label class="form-label" for="natural-due-date">期限を言葉で入力</label>
+    <input class="form-input" type="text" id="natural-due-date" maxlength="100" autocomplete="off"
+           placeholder="明日、3日後、来週金曜、12月25日" aria-describedby="smart-date-help smart-date-preview">
+    <p id="smart-date-help">解析した日付を期限欄に反映します。日本時間・月曜始まりで、年のない日付は今日以降の最も近い日になります。</p>
+    <p id="smart-date-preview" role="status" aria-live="polite" aria-atomic="true"></p>
+    <script th:src="@{/js/smart-date.js}" defer></script>
+</div>
+</body>
+</html>
