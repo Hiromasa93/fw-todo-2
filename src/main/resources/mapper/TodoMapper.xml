@@ -19,6 +19,9 @@
             <if test="to != null">
                 AND due_date &lt;= #{to}
             </if>
+            <if test="!includeCompleted">
+                AND completed = false
+            </if>
         </where>
         ORDER BY due_date
         <choose>

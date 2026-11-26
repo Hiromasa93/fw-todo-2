@@ -32,17 +32,19 @@ public class HomeController {
     @GetMapping("/todos")
     public String todos(@RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "") String category,
-            @RequestParam(defaultValue = "asc") String order, Model model) {
+            @RequestParam(defaultValue = "asc") String order,
+            @RequestParam(defaultValue = "false") boolean includeCompleted, Model model) {
         if (!"desc".equals(order)) {
             order = "asc";
         }
         // The page does not expose date filters, so leave the API's optional
         // date range unset for the HTML list.
-        List<Todo> todos = todoService.search(keyword, category, order, null, null);
+        List<Todo> todos = todoService.search(keyword, category, order, null, null, includeCompleted);
         model.addAttribute("todos", todos);
         model.addAttribute("keyword", keyword);
         model.addAttribute("category", category);
         model.addAttribute("order", order);
+        model.addAttribute("includeCompleted", includeCompleted);
         return "todos";
     }
 
