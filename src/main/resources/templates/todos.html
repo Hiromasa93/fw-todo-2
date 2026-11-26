@@ -40,7 +40,8 @@
                 </tr>
             </thead>
             <tbody>
-                <tr th:each="todo : ${todos}">
+                <tr th:each="todo : ${todos}"
+                    th:attr="data-due-date=${todo.dueDate},data-completed=${todo.completed}">
                     <td>
                         <div class="todo-title">
                             <form class="pin-form" th:if="${!trash}" th:action="@{/todos/{id}/pin(id=${todo.id})}" method="post">
@@ -60,7 +61,10 @@
                         </div>
                     </td>
                     <td th:text="${todo.category}">ジャンル</td>
-                    <td th:text="${todo.priority == 1 ? '高' : (todo.priority == 2 ? '中' : '低')}">優先度</td>
+                    <td>
+                        <span th:if="${todo.priority == 1}" class="priority-high-mark" aria-hidden="true"></span>
+                        <span th:text="${todo.priority == 1 ? '高' : (todo.priority == 2 ? '中' : '低')}">優先度</span>
+                    </td>
                     <td th:text="${todo.dueDate != null ? #temporals.format(todo.dueDate, 'yyyy/MM/dd') : '期限なし'}">期限</td>
                     <td th:text="${todo.completed ? '完了' : '未完了'}">状態</td>
                     <td th:if="${!trash}"><a class="link" th:href="@{/todos/{id}/edit(id=${todo.id})}">編集</a> <a class="link" th:href="@{/todos/{id}/delete(id=${todo.id})}">削除</a></td>
@@ -69,5 +73,17 @@
             </tbody>
         </table>
     </main>
+    <script>
+        const today = new Date();
+        const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        document.querySelectorAll('.todo-table tbody tr').forEach(row => {
+            const dueDate = row.dataset.dueDate;
+            const completed = row.dataset.completed === 'true';
+            if (dueDate && dueDate < todayDate && !completed) {
+                row.classList.add('overdue');
+            }
+        });
+    </script>
 </body>
 </html>

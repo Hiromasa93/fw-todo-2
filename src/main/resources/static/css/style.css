@@ -42,6 +42,20 @@ body {
     font-weight: bold;
 }
 
+.todo-table tbody tr.overdue {
+    background-color: #fee2e2;
+}
+
+.priority-high-mark {
+    display: inline-block;
+    width: 0.5em;
+    height: 0.5em;
+    margin-right: 4px;
+    border-radius: 50%;
+    background-color: #dc2626;
+    vertical-align: middle;
+}
+
 .todo-title {
     display: inline-flex;
     align-items: center;
